@@ -15,32 +15,39 @@
  */
 package org.grails.plugins.elasticsearch.index;
 
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.log4j.Logger;
 import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil;
 import org.codehaus.groovy.grails.orm.hibernate.support.HibernatePersistenceContextInterceptor;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkItemResponse;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.grails.plugins.elasticsearch.ElasticSearchContextHolder;
 import org.grails.plugins.elasticsearch.conversion.JSONDomainFactory;
 import org.grails.plugins.elasticsearch.exception.IndexException;
 import org.grails.plugins.elasticsearch.mapping.SearchableClassMapping;
-import org.hibernate.LockMode;
+import org.hibernate.LockOptions;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.orm.hibernate3.SessionFactoryUtils;
 import org.springframework.util.Assert;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Holds objects to be indexed.
@@ -123,7 +130,8 @@ public class IndexRequestQueue implements InitializingBean {
 
     public XContentBuilder toJSON(Object instance) {
         try {
-            return jsonDomainFactory.buildJSON(instance);
+            XContentBuilder  b = jsonDomainFactory.buildJSON(instance);
+            return b;
         } catch (Exception e) {
             throw new IndexException("Failed to marshall domain instance [" + instance + "]", e);
         }
@@ -171,10 +179,11 @@ public class IndexRequestQueue implements InitializingBean {
 
                 // If this not a transient instance, reattach it to the session
                 if (session.contains(entity)) {
-                    session.lock(entity, LockMode.NONE);
-                    LOG.debug("Reattached entity to session");
+                	session.buildLockRequest(LockOptions.NONE).lock(entity);
+                    LOG.debug("Reattached entity to session with new lock");
                 }
 
+                LOG.debug("to JSON " + entity.toString());
                 XContentBuilder json = toJSON(entity);
 
                 bulkRequestBuilder.add(
@@ -184,6 +193,7 @@ public class IndexRequestQueue implements InitializingBean {
                                 .setId(entry.getKey().getId()) // TODO : Composite key ?
                                 .setSource(json)
                 );
+                LOG.debug("bulkRequestBuilder created");
                 if (LOG.isDebugEnabled()) {
                     try {
                         LOG.debug("Indexing " + entry.getKey().getClazz() + "(index:" + scm.getIndexName() + ",type:" + scm.getElasticTypeName() +
@@ -213,7 +223,7 @@ public class IndexRequestQueue implements InitializingBean {
         // Perform bulk request
         OperationBatch completeListener = null;
         if (bulkRequestBuilder.numberOfActions() > 0) {
-            completeListener = new OperationBatch(0, toIndex, toDelete);
+            completeListener = new OperationBatch(2, toIndex, toDelete);
             operationBatchList.add(completeListener);
             try {
                 bulkRequestBuilder.execute().addListener(completeListener);
@@ -221,6 +231,8 @@ public class IndexRequestQueue implements InitializingBean {
                 throw new IndexException("Failed to index/delete " + bulkRequestBuilder.numberOfActions(), e);
             }
         }
+        
+        LOG.debug("returning from execRequests");
 
         return completeListener;
     }
@@ -251,7 +263,7 @@ public class IndexRequestQueue implements InitializingBean {
 
     class OperationBatch implements ActionListener<BulkResponse> {
 
-        private int attempts;
+		private int attempts;
         private Map<IndexEntityKey, Object> toIndex;
         private Set<IndexEntityKey> toDelete;
         private CountDownLatch synchronizedCompletion = new CountDownLatch(1);
@@ -313,7 +325,17 @@ public class IndexRequestQueue implements InitializingBean {
                 }
             }
             if (!toIndex.isEmpty() || !toDelete.isEmpty()) {
-                push();
+                LOG.debug("Test to push if it is empty");
+                LOG.debug("bulkResponse: " + bulkResponse.toString());
+                
+                if(bulkResponse.hasFailures()) {
+                	LOG.debug("Not pushing failure message: " + bulkResponse.buildFailureMessage());
+                    LOG.error("Failed bulkResponse not pushing.");
+                	fireComplete();
+                } else {
+                	push();
+                }
+                	
             } else {
                 fireComplete();
                 if (LOG.isDebugEnabled()) {
@@ -324,8 +346,14 @@ public class IndexRequestQueue implements InitializingBean {
 
         public void onFailure(Throwable e) {
             // Everything failed. Re-push all.
-            LOG.error("Bulk request failure", e);
-            push();
+            LOG.error("Bulk request onFailure", e);
+            
+            if(attempts > 0) {
+            	push();
+            	attempts = attempts - 1;
+            } else {
+            	LOG.debug("no more trys. attempts have run out");
+            }
         }
 
 
@@ -354,15 +382,19 @@ public class IndexRequestQueue implements InitializingBean {
         }
     }
 
-    class IndexEntityKey implements Serializable {
+	class IndexEntityKey implements Serializable {
 
         /**
+		 * 
+		 */
+		private static final long serialVersionUID = -4266229881141586096L;
+		/**
          * stringified id.
          */
         private final String id;
-        private final Class clazz;
+        private final Class<?> clazz;
 
-        IndexEntityKey(String id, Class clazz) {
+        IndexEntityKey(String id, Class<?> clazz) {
             this.id = id;
             this.clazz = clazz;
         }
@@ -373,14 +405,15 @@ public class IndexRequestQueue implements InitializingBean {
             if (scm == null) {
                 throw new IllegalArgumentException("Class " + clazz + " is not a searchable domain class.");
             }
-            this.id = (InvokerHelper.invokeMethod(instance, "ident", null)).toString();
+            Object _id = InvokerHelper.invokeMethod(instance, "ident", null);
+            this.id = (_id).toString();
         }
 
         public String getId() {
             return id;
         }
 
-        public Class getClazz() {
+        public Class<?> getClazz() {
             return clazz;
         }
 

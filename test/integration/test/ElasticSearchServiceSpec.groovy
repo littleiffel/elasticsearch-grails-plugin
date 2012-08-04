@@ -22,8 +22,8 @@ class ElasticSearchServiceSpec extends IntegrationSpec {
 
     def "Index a domain object"() {
         given:
-        def product = new Product(name: "myTestProduct")
-        product.save()
+        def product //= new Product(name: "myTestProduct")
+        //product.save()
 
         when:
         elasticSearchService.index(product)
@@ -35,7 +35,7 @@ class ElasticSearchServiceSpec extends IntegrationSpec {
 
     def "Unindex method delete index from ES"() {
         given:
-        def product = new Product(name: "myTestProduct")
+        def product //= new Product(name: "myTestProduct")
         product.save()
 
         when:
@@ -55,7 +55,7 @@ class ElasticSearchServiceSpec extends IntegrationSpec {
 
     def "Indexing multiple time the same object update the corresponding ES entry"() {
         given:
-        def product = new Product(name: "myTestProduct")
+        def product //= new Product(name: "myTestProduct")
         product.save()
 
         when:

@@ -4,8 +4,6 @@ package org.grails.plugins.elasticsearch.mapping;
 import org.junit.Test
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
-import test.Photo
-import test.upperCase.UpperCase
 
 public class SearchableClassMappingTest {
     @Test

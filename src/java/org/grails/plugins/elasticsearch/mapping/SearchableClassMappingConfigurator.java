@@ -46,8 +46,10 @@ public class SearchableClassMappingConfigurator {
      * Init method.
      */
     public void configureAndInstallMappings() {
+        LOG.debug("installing mappings"); 
         Collection<SearchableClassMapping> mappings = buildMappings();
         installMappings(mappings);
+        LOG.debug("mappings installed"); 
     }
 
     /**
@@ -55,15 +57,18 @@ public class SearchableClassMappingConfigurator {
      * @param mappings searchable class mappings to be install.
      */
     public void installMappings(Collection<SearchableClassMapping> mappings) {
+        LOG.debug("Installing mappings start ... ");
         Set<String> installedIndices = new HashSet<String>();
         Map<String, Object> settings = new HashMap<String, Object>();
 //        settings.put("number_of_shards", 5);        // must have 5 shards to be Green.
 //        settings.put("number_of_replicas", 2);
         settings.put("number_of_replicas", 0);
         // Look for default index settings.
-        Map esConfig = (Map) ConfigurationHolder.getConfig().getProperty("elasticSearch");
+		@SuppressWarnings("rawtypes")
+		Map esConfig = (Map) grailsApplication.getConfig().getProperty("elasticSearch");
+        //Map esConfig = (Map) ConfigurationHolder.getConfig().getProperty("elasticSearch");
         if (esConfig != null) {
-            @SuppressWarnings({"unchecked"})
+        	@SuppressWarnings("unchecked")
             Map<String, Object> indexDefaults = (Map<String, Object>) esConfig.get("index");
             LOG.debug("Retrieved index settings");
             if (indexDefaults != null) {
@@ -123,6 +128,7 @@ public class SearchableClassMappingConfigurator {
     }
 
     private Collection<SearchableClassMapping> buildMappings() {
+        LOG.debug("building mappings");
         List<SearchableClassMapping> mappings = new ArrayList<SearchableClassMapping>();
         for(GrailsClass clazz : grailsApplication.getArtefacts(DomainClassArtefactHandler.TYPE)) {
             GrailsDomainClass domainClass = (GrailsDomainClass) clazz;
@@ -135,6 +141,7 @@ public class SearchableClassMappingConfigurator {
         }
 
         // Inject cross-referenced component mappings.
+        LOG.debug("Inject cross-referenced component mappings.");
         for(SearchableClassMapping scm : mappings) {
             for(SearchableClassPropertyMapping scpm : scm.getPropertiesMapping()) {
                 if (scpm.isComponent()) {
@@ -145,6 +152,7 @@ public class SearchableClassMappingConfigurator {
         }
 
         // Validate all mappings to make sure any cross-references are fine.
+        LOG.debug( "Validate all mappings to make sure any cross-references are fine.");
         for(SearchableClassMapping scm : mappings) {
             scm.validate(elasticSearchContext);
         }

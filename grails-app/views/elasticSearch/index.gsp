@@ -1,7 +1,7 @@
 %{--
   Test GSP
 --}%
-<%@ page import="test.Tweet; test.User" contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" %>
 <html>
 <head>
   <title>ElasticSearch Test</title>

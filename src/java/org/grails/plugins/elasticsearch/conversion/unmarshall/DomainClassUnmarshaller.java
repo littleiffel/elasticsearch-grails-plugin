@@ -17,6 +17,8 @@
 package org.grails.plugins.elasticsearch.conversion.unmarshall;
 
 import groovy.lang.GroovyObject;
+
+import org.apache.commons.lang.WordUtils;
 import org.apache.log4j.Logger;
 import org.codehaus.groovy.grails.commons.*;
 import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod;
@@ -53,7 +55,7 @@ public class DomainClassUnmarshaller {
         DefaultUnmarshallingContext unmarshallingContext = new DefaultUnmarshallingContext();
         List results = new ArrayList();
         for(SearchHit hit : hits) {
-            String domainClassName = hit.index().equals(hit.type()) ? DefaultGroovyMethods.capitalize(hit.index()) : (hit.index() + '.' + DefaultGroovyMethods.capitalize(hit.type()));
+            String domainClassName = hit.index().equals(hit.type()) ? WordUtils.capitalize(hit.index()) : (hit.index() + '.' + WordUtils.capitalize(hit.type()));
             SearchableClassMapping scm = elasticSearchContextHolder.getMappingContext(domainClassName);
             if (scm == null) {
                 LOG.warn("Unknown SearchHit: " + hit.id() + "#" + hit.type() + ", domain class name: " + domainClassName);
@@ -65,7 +67,6 @@ public class DomainClassUnmarshaller {
             GroovyObject instance = (GroovyObject) scm.getDomainClass().newInstance();
             instance.setProperty(identifier.getName(), id);
 
-            /*def mapContext = elasticSearchContextHolder.getMappingContext(domainClass.propertyName)?.propertiesMapping*/
             Map rebuiltProperties = new HashMap();
             for(Map.Entry<String, Object> entry : hit.getSource().entrySet()) {
                 unmarshallingContext.getUnmarshallingStack().push(entry.getKey());
@@ -117,9 +118,10 @@ public class DomainClassUnmarshaller {
             String part = st.nextToken();
             if (index < size - 1) {
                 try {
-                    if (currentProperty instanceof Collection) {
+                    if (currentProperty instanceof List) {
                         //noinspection unchecked
-                        currentProperty = DefaultGroovyMethods.getAt(((Collection<Object>) currentProperty).iterator(), DefaultGroovyMethods.toInteger(part));
+                        //currentProperty = DefaultGroovyMethods.getAt(((Collection<Object>) currentProperty).iterator(), DefaultGroovyMethods.toInteger(part));
+                        currentProperty = DefaultGroovyMethods.getAt((List<?>) currentProperty, DefaultGroovyMethods.toInteger(part));
                     } else {
                         currentProperty = DefaultGroovyMethods.getAt(currentProperty, part);
                     }

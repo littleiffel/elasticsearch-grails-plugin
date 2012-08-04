@@ -20,7 +20,6 @@ import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
 import org.elasticsearch.common.xcontent.XContentBuilder
 import static org.elasticsearch.common.xcontent.XContentFactory.*
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
-import org.codehaus.groovy.grails.commons.ApplicationHolder
 import org.grails.plugins.elasticsearch.conversion.marshall.DeepDomainClassMarshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.DefaultMarshallingContext
 import org.grails.plugins.elasticsearch.conversion.marshall.DefaultMarshaller
@@ -32,6 +31,8 @@ import org.grails.plugins.elasticsearch.conversion.marshall.PropertyEditorMarsha
 import org.grails.plugins.elasticsearch.conversion.marshall.Marshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.SearchableReferenceMarshaller
 import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
+import org.apache.commons.logging.LogFactory
+
 
 /**
  * Marshall objects as JSON.
@@ -40,6 +41,7 @@ class JSONDomainFactory {
 
     def elasticSearchContextHolder
     def grailsApplication
+	private log = LogFactory.getLog(JSONDomainFactory)
 
     /**
      * The default marshallers, not defined by user
@@ -57,6 +59,7 @@ class JSONDomainFactory {
      */
     public delegateMarshalling(object, marshallingContext, maxDepth = 0) {
         if (object == null) {
+            log.debug("returning null")
             return null
         }
         def marshaller = null
@@ -120,6 +123,7 @@ class JSONDomainFactory {
         marshaller.marshallingContext = marshallingContext
         marshaller.elasticSearchContextHolder = elasticSearchContextHolder
         marshaller.maxDepth = maxDepth
+        log.debug("mashalling ${object}")
         marshaller.marshall(object)
     }
 

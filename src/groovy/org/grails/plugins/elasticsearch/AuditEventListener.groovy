@@ -261,7 +261,7 @@ class AuditEventListener extends SaveOrUpdateEventListener implements PostCollec
 
                     break
                 case STATUS_ROLLED_BACK:
-                    LOG.debug "Rollbacking ${objsToIndex ? objsToIndex.size() : 0} objs."
+                    LOG.debug "Rollbacking ${objsToIndex} ${objsToIndex ? objsToIndex.size() : 0} objs."
                     break
                 default:
                     LOG.error "Unknown transaction state."

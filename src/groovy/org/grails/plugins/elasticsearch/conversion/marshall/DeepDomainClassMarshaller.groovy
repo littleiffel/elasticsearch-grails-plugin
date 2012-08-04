@@ -1,12 +1,18 @@
 package org.grails.plugins.elasticsearch.conversion.marshall
 
 import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
-import org.codehaus.groovy.grails.commons.ApplicationHolder
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
 import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext
+import org.springframework.context.ApplicationContextAware
+import org.codehaus.groovy.grails.commons.ApplicationHolder
 
 class DeepDomainClassMarshaller extends DefaultMarshaller {
+    
+  private ApplicationContext ctx
+  
   protected doMarshall(instance) {
     def domainClass = getDomainClass(instance)
     // don't use instance class directly, instead unwrap from javaassist
@@ -47,14 +53,21 @@ class DeepDomainClassMarshaller extends DefaultMarshaller {
     }
     return marshallResult
   }
-
+  
   protected nullValue(){
     return []
   }
 
   private GrailsDomainClass getDomainClass(instance) {
-    def grailsApplication = ApplicationHolder.application
-    def instanceClass = GrailsHibernateUtil.unwrapIfProxy(instance).class
-    grailsApplication.domainClasses.find {it.clazz == instanceClass}
+    //def instanceClass = GrailsHibernateUtil.unwrapIfProxy(instance).class
+    //ctx.getBean('grailsApplication').domainClasses.find {it.clazz == instanceClass}
+	def grailsApplication = ApplicationHolder.application
+	def instanceClass = GrailsHibernateUtil.unwrapIfProxy(instance).class
+	grailsApplication.domainClasses.find {it.clazz == instanceClass}
+  }
+
+  @Override
+  public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+  	this.ctx = applicationContext
   }
 }
