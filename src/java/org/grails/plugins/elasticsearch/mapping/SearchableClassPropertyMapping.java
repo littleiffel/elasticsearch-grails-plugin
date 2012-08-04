@@ -15,10 +15,15 @@
  */
 package org.grails.plugins.elasticsearch.mapping;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty;
 import org.grails.plugins.elasticsearch.ElasticSearchContextHolder;
-
-import java.util.*;
 
 /**
  * Custom searchable property mapping.
@@ -39,7 +44,7 @@ public class SearchableClassPropertyMapping {
         this.grailsProperty = property;
     }
 
-    public SearchableClassPropertyMapping(GrailsDomainClassProperty property, Map options) {
+    public SearchableClassPropertyMapping(GrailsDomainClassProperty property, Map<String,Object> options) {
         this.grailsProperty = property;
         this.addAttributes(options);
     }
@@ -96,12 +101,10 @@ public class SearchableClassPropertyMapping {
         }
     }
 
-
-
-    public Class getBestGuessReferenceType() {
+    public Class<?> getBestGuessReferenceType() {
         // is type defined explicitly?
         if (getReference() instanceof Class) {
-            return (Class) this.getReference();
+            return (Class<?>) this.getReference();
         }
 
         // is it association?
@@ -128,7 +131,7 @@ public class SearchableClassPropertyMapping {
 
         // Are we referencing searchable class?
         if (this.getReference() != null) {
-            Class myReferenceType = getBestGuessReferenceType();
+            Class<?> myReferenceType = getBestGuessReferenceType();
             // Compare using exact match of classes.
             // May not be correct to inheritance model.
             SearchableClassMapping scm = contextHolder.getMappingContextByType(myReferenceType);

@@ -7,7 +7,6 @@ import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
-import org.codehaus.groovy.grails.commons.ApplicationHolder
 
 class DeepDomainClassMarshaller extends DefaultMarshaller {
     
@@ -59,11 +58,8 @@ class DeepDomainClassMarshaller extends DefaultMarshaller {
   }
 
   private GrailsDomainClass getDomainClass(instance) {
-    //def instanceClass = GrailsHibernateUtil.unwrapIfProxy(instance).class
-    //ctx.getBean('grailsApplication').domainClasses.find {it.clazz == instanceClass}
-	def grailsApplication = ApplicationHolder.application
 	def instanceClass = GrailsHibernateUtil.unwrapIfProxy(instance).class
-	grailsApplication.domainClasses.find {it.clazz == instanceClass}
+	elasticSearchContextHolder.grailsApplication.domainClasses.find {it.clazz == instanceClass}
   }
 
   @Override

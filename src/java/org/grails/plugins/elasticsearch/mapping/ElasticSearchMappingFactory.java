@@ -15,11 +15,16 @@
  */
 package org.grails.plugins.elasticsearch.mapping;
 
-import org.codehaus.groovy.grails.commons.GrailsClassUtils;
-import org.grails.plugins.elasticsearch.ElasticSearchContextHolder;
-import org.springframework.util.ClassUtils;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
-import java.util.*;
+import org.codehaus.groovy.grails.commons.GrailsClassUtils;
+import org.springframework.util.ClassUtils;
 
 /**
  * Build ElasticSearch class mapping based on attributes provided by closure.
@@ -29,7 +34,7 @@ public class ElasticSearchMappingFactory {
     private static final Set<String> SUPPORTED_FORMAT = new HashSet<String>(Arrays.asList(
             "string", "integer", "long", "float", "double", "boolean", "null", "date"));
 
-    private static Class JODA_TIME_BASE;
+    private static Class<?> JODA_TIME_BASE;
 
     static {
         try {
@@ -37,7 +42,8 @@ public class ElasticSearchMappingFactory {
         } catch (ClassNotFoundException e) { }
     }
 
-    public static Map<String, Object> getElasticMapping(SearchableClassMapping scm) {
+    @SuppressWarnings("unchecked")
+	public static Map<String, Object> getElasticMapping(SearchableClassMapping scm) {
         Map<String, Object> elasticTypeMappingProperties = new LinkedHashMap<String, Object>();
 
         if (!scm.isAll()) {

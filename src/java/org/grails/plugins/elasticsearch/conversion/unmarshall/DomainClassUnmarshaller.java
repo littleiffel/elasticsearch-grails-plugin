@@ -51,9 +51,10 @@ public class DomainClassUnmarshaller {
     private Client elasticSearchClient;
 
 
-    public Collection buildResults(SearchHits hits) {
+    // todo can we make this a list??
+    public Collection<?> buildResults(SearchHits hits) {
         DefaultUnmarshallingContext unmarshallingContext = new DefaultUnmarshallingContext();
-        List results = new ArrayList();
+        List<GroovyObject> results = new ArrayList<GroovyObject>();
         for(SearchHit hit : hits) {
             String domainClassName = hit.index().equals(hit.type()) ? WordUtils.capitalize(hit.index()) : (hit.index() + '.' + WordUtils.capitalize(hit.type()));
             SearchableClassMapping scm = elasticSearchContextHolder.getMappingContext(domainClassName);
@@ -63,11 +64,12 @@ public class DomainClassUnmarshaller {
             }
 
             GrailsDomainClassProperty identifier = scm.getDomainClass().getIdentifier();
-            Object id = typeConverter.convertIfNecessary(hit.id(), identifier.getType());
+            @SuppressWarnings("unchecked")
+			Object id = typeConverter.convertIfNecessary(hit.id(), identifier.getType());
             GroovyObject instance = (GroovyObject) scm.getDomainClass().newInstance();
             instance.setProperty(identifier.getName(), id);
 
-            Map rebuiltProperties = new HashMap();
+            Map<String,Object> rebuiltProperties = new HashMap<String,Object>();
             for(Map.Entry<String, Object> entry : hit.getSource().entrySet()) {
                 unmarshallingContext.getUnmarshallingStack().push(entry.getKey());
                 rebuiltProperties.put(entry.getKey(),
@@ -89,7 +91,7 @@ public class DomainClassUnmarshaller {
         }
     }
 
-    private Object resolvePath(String path, Object instance, Map<String, Object> rebuiltProperties) {
+	private Object resolvePath(String path, Object instance, Map<String, Object> rebuiltProperties) {
         if (path == null || path.equals("")) {
             return instance;
         } else {
@@ -99,7 +101,7 @@ public class DomainClassUnmarshaller {
                 String part = st.nextToken();
                 try {
                     int index = Integer.parseInt(part);
-                    currentProperty = DefaultGroovyMethods.getAt(DefaultGroovyMethods.asList((Collection) currentProperty), index);
+                    currentProperty = DefaultGroovyMethods.getAt(DefaultGroovyMethods.asList((Collection<?>) currentProperty), index);
                 } catch (NumberFormatException e) {
                     currentProperty = DefaultGroovyMethods.getAt(currentProperty, part);
                 }
@@ -108,7 +110,8 @@ public class DomainClassUnmarshaller {
         }
     }
 
-    private void populateProperty(String path, Map<String, Object> rebuiltProperties, Object value) {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	private void populateProperty(String path, Map<String, Object> rebuiltProperties, Object value) {
         String last = null;
         Object currentProperty = rebuiltProperties;
         StringTokenizer st = new StringTokenizer(path, "/");
@@ -144,7 +147,8 @@ public class DomainClassUnmarshaller {
         }
     }
 
-    private Object unmarshallProperty(GrailsDomainClass domainClass, String propertyName, Object propertyValue, DefaultUnmarshallingContext unmarshallingContext) {
+    @SuppressWarnings("rawtypes")
+	private Object unmarshallProperty(GrailsDomainClass domainClass, String propertyName, Object propertyValue, DefaultUnmarshallingContext unmarshallingContext) {
         // TODO : adapt behavior if the mapping option "component" or "reference" are set
         // below is considering the "component" behavior
         SearchableClassPropertyMapping scpm = elasticSearchContextHolder.getMappingContext(domainClass).getPropertyMapping(propertyName);
@@ -260,7 +264,8 @@ public class DomainClassUnmarshaller {
 
     private Object unmarshallDomain(GrailsDomainClass domainClass, Object providedId, Map<String, Object> data, DefaultUnmarshallingContext unmarshallingContext) {
         GrailsDomainClassProperty identifier = domainClass.getIdentifier();
-        Object id = typeConverter.convertIfNecessary(providedId, identifier.getType());
+        @SuppressWarnings("unchecked")
+		Object id = typeConverter.convertIfNecessary(providedId, identifier.getType());
         GroovyObject instance = (GroovyObject) domainClass.newInstance();
         instance.setProperty(identifier.getName(), id);
         for(Map.Entry<String, Object> entry : data.entrySet()) {

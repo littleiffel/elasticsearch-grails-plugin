@@ -80,7 +80,7 @@ public class SearchableClassMappingConfigurator {
         LOG.debug("Installing mappings...");
         for(SearchableClassMapping scm : mappings) {
             if (scm.isRoot()) {
-                Map elasticMapping = ElasticSearchMappingFactory.getElasticMapping(scm);
+                Map<String,Object> elasticMapping = ElasticSearchMappingFactory.getElasticMapping(scm);
 
                 // todo wait for success, maybe retry.
                 // If the index does not exist, create it

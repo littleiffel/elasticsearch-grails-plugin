@@ -1,5 +1,6 @@
 package org.grails.plugins.elasticsearch
 
+import org.codehaus.groovy.grails.commons.GrailsApplication;
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.grails.plugins.elasticsearch.mapping.SearchableClassMapping
 
@@ -8,6 +9,8 @@ class ElasticSearchContextHolder {
      * The configuration of the ElasticSearch plugin
      */
     ConfigObject config
+	
+	GrailsApplication grailsApplication
 
     /**
      * A map containing the mapping to ElasticSearch

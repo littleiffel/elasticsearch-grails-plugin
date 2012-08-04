@@ -65,7 +65,7 @@ class ElasticsearchGrailsPlugin {
 
     def developers = [
             [name: "Manuarii Stein", email: "mstein@doc4web.com"],
-            [name: "Stéphane Maldini", email: "smaldini@doc4web.com"]
+            [name: "St��phane Maldini", email: "smaldini@doc4web.com"]
     ]
 
     def issueManagement = [system: "icescrum", url: "http://doc4web.com/icescrum/p/ELASTIC#project"]
@@ -93,6 +93,7 @@ class ElasticsearchGrailsPlugin {
         }
         elasticSearchContextHolder(ElasticSearchContextHolder) {
             config = esConfig
+			grailsApplication=application
         }
         elasticSearchClient(ClientNodeFactoryBean) { bean ->
             elasticSearchContextHolder = ref("elasticSearchContextHolder")
