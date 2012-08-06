@@ -23,7 +23,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.codehaus.groovy.grails.commons.GrailsClassUtils;
+import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty;
 import org.springframework.util.ClassUtils;
 
 /**
@@ -33,9 +35,12 @@ public class ElasticSearchMappingFactory {
 
     private static final Set<String> SUPPORTED_FORMAT = new HashSet<String>(Arrays.asList(
             "string", "integer", "long", "float", "double", "boolean", "null", "date"));
+    
+    private static final Logger LOG = Logger.getLogger(ElasticSearchMappingFactory.class);
+
 
     private static Class<?> JODA_TIME_BASE;
-
+    
     static {
         try {
             JODA_TIME_BASE = Class.forName("org.joda.time.ReadableInstant");
@@ -55,34 +60,41 @@ public class ElasticSearchMappingFactory {
         // Map each domain properties in supported format, or object for complex type
         for(SearchableClassPropertyMapping scpm : scm.getPropertiesMapping()) {
             // Does it have custom mapping?
-            String propType = scpm.getGrailsProperty().getTypePropertyName();
+            GrailsDomainClassProperty property = scpm.getGrailsProperty();
+            String propType = property.getTypePropertyName();
             Map<String, Object> propOptions = new LinkedHashMap<String, Object>();
             // Add the custom mapping (searchable static property in domain model)
             propOptions.putAll(scpm.getAttributes());
-            if (!(SUPPORTED_FORMAT.contains(scpm.getGrailsProperty().getTypePropertyName()))) {
+            if (!(SUPPORTED_FORMAT.contains(propType))) {
+            	LOG.debug("propType not supported: " + propType + " name: " + property.getName());
                 // Handle embedded persistent collections, ie List<String> listOfThings
-                if (scpm.getGrailsProperty().isBasicCollectionType()) {
-                    String basicType = ClassUtils.getShortName(scpm.getGrailsProperty().getReferencedPropertyType()).toLowerCase(Locale.ENGLISH);
+                if (property.isBasicCollectionType()) {
+                    String basicType = ClassUtils.getShortName(property.getReferencedPropertyType()).toLowerCase(Locale.ENGLISH);
                     if (SUPPORTED_FORMAT.contains(basicType)) {
                         propType = basicType;
                     }
                 // Handle arrays
-                } else if (scpm.getGrailsProperty().getReferencedPropertyType().isArray()) {
-                    String basicType = ClassUtils.getShortName(scpm.getGrailsProperty().getReferencedPropertyType().getComponentType()).toLowerCase(Locale.ENGLISH);
+                } else if (property.getReferencedPropertyType().isArray()) {
+                    String basicType = ClassUtils.getShortName(property.getReferencedPropertyType().getComponentType()).toLowerCase(Locale.ENGLISH);
                     if (SUPPORTED_FORMAT.contains(basicType)) {
                         propType = basicType;
                     }
-                } else if (isDateType(scpm.getGrailsProperty().getReferencedPropertyType())) {
+                } else if (isDateType(property.getReferencedPropertyType())) {
                     propType = "date";
-                } else if (GrailsClassUtils.isJdk5Enum(scpm.getGrailsProperty().getReferencedPropertyType())) {
+                } else if (GrailsClassUtils.isJdk5Enum(property.getReferencedPropertyType())) {
                     propType = "string";
                 } else if (scpm.getConverter() != null) {
                     // Use 'string' type for properties with custom converter.
                     // Arrays are automatically resolved by ElasticSearch, so no worries.
                     propType = "string";
+                } else if (isStringType(property.getReferencedPropertyType())){
+                    // todo is this helping??
+                    propType = "string";
                 } else {
+                    // todo should this be string??
                     propType = "object";
                 }
+                
 
                 if (scpm.getReference() != null) {
                     propType = "object";      // fixme: think about composite ids.
@@ -99,7 +111,6 @@ public class ElasticSearchMappingFactory {
                 // Once it is an object, we need to add id & class mappings, otherwise
                 // ES will fail with NullPointer.
                 if (scpm.isComponent() || scpm.getReference() != null) {
-                    @SuppressWarnings({"unchecked"})
                     Map<String, Object> props = (Map<String, Object>) propOptions.get("properties");
                     if (props == null) {
                         props = new LinkedHashMap<String, Object>();
@@ -134,8 +145,12 @@ public class ElasticSearchMappingFactory {
         return mapping;
     }
 
-    private static boolean isDateType(Class type) {
+    private static boolean isDateType(Class<?> type) {
         return (JODA_TIME_BASE != null && JODA_TIME_BASE.isAssignableFrom(type)) || java.util.Date.class.isAssignableFrom(type);
+    }
+    
+    private static boolean isStringType(Class<?> type) {
+        return (java.lang.String.class.isAssignableFrom(type));
     }
 
     private static Map<String, Object> defaultDescriptor(String type, String index, boolean excludeFromAll) {

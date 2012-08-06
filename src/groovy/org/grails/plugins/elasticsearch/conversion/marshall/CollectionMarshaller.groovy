@@ -6,7 +6,7 @@ class CollectionMarshaller extends DefaultMarshaller {
     protected doMarshall(collection) {
         Hibernate.initialize(collection)
         def marshallResult = collection.asList().collect {
-            marshallingContext.delegateMarshalling(it)
+            marshallingContext.delegateMarshalling(it, [])
         }
         return marshallResult
     }

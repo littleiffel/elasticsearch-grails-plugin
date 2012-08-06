@@ -34,8 +34,7 @@ class SearchableReferenceMarshaller extends DefaultMarshaller {
     protected Object doMarshall(Object object) {
         assert refClass != null
         assert refClass.isAssignableFrom(object.getClass()) : "Marshalled object ${object} is not [${refClass}]."
-        def grailsApplication = elasticSearchContextHolder.grailsApplication
-        def domainClass = grailsApplication.domainClasses.find {it.clazz == refClass}
+        def domainClass = elasticSearchContextHolder.grailsApplication.domainClasses.find {it.clazz == refClass}
         assert domainClass : "Class ${refClass} is not a Grails domain class."
         
         // todo encapsulate me

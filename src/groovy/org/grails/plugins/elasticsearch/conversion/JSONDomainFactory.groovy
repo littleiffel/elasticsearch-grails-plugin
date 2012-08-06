@@ -27,10 +27,16 @@ import org.grails.plugins.elasticsearch.conversion.marshall.MapMarshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.CollectionMarshaller
 import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
 import java.beans.PropertyEditor
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
+
 import org.grails.plugins.elasticsearch.conversion.marshall.PropertyEditorMarshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.Marshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.SearchableReferenceMarshaller
 import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
+import org.apache.commons.lang.ClassUtils
 import org.apache.commons.logging.LogFactory
 
 
@@ -38,6 +44,9 @@ import org.apache.commons.logging.LogFactory
  * Marshall objects as JSON.
  */
 class JSONDomainFactory {
+	
+	private static final Set<String> SUPPORTED_FORMAT = new HashSet<String>(Arrays.asList(
+		"string", "integer", "long", "float", "double", "boolean", "null", "date"));
 
     def elasticSearchContextHolder
     def grailsApplication
@@ -57,10 +66,10 @@ class JSONDomainFactory {
      * @param marshallingContext The marshalling context associate with the current marshalling process
      * @return Object The result of the marshall operation.
      */
-    public delegateMarshalling(object, marshallingContext, maxDepth = 0) {
+    public delegateMarshalling(object, marshallingContext, nullValue, maxDepth = 0) {
         if (object == null) {
             log.debug("returning null")
-            return null
+            return nullValue
         }
         def marshaller = null
         def objectClass = object.getClass()
@@ -126,6 +135,7 @@ class JSONDomainFactory {
         log.debug("mashalling ${object}")
         marshaller.marshall(object)
     }
+	
 
     private GrailsDomainClass getDomainClass(instance) {
         grailsApplication.domainClasses.find {it.clazz == GrailsHibernateUtil.unwrapIfProxy(instance).class}
@@ -147,7 +157,21 @@ class JSONDomainFactory {
         // Build the json-formated map that will contain the data to index
         scm.propertiesMapping.each { scpm ->
             marshallingContext.lastParentPropertyName = scpm.propertyName
-            def res = delegateMarshalling(instance."${scpm.propertyName}", marshallingContext)
+            // todo figure out null value
+            
+            def nullObject = null
+			def classType = scpm.getPropertyType()
+			String shortTypeName = ClassUtils.getShortClassName(classType);
+			def type = shortTypeName.substring(0,1).toLowerCase(Locale.ENGLISH) + shortTypeName.substring(1);
+            log.debug("type: ${type}")
+            
+			if(type.equals("string")) nullObject = ""
+			else if( type.equals("integer") || type.equals("long") || type.equals("float") || type.equals("double") ) 
+				nullObject = 0
+			else if(type.equals("set")|| type.equals("list") || type.equals("collection")) return []
+			else if(type.equals("map")) return [:]
+            
+            def res = delegateMarshalling(instance."${scpm.propertyName}", marshallingContext,nullObject)
             json.field(scpm.propertyName, res)
         }
         marshallingContext.pop()
@@ -155,4 +179,5 @@ class JSONDomainFactory {
         json.close()
         json
     }
+	
 }

@@ -71,8 +71,8 @@ class DefaultMarshallingContext {
     }
 
 
-    public delegateMarshalling(object, maxDepth = 0) {
-        parentFactory.delegateMarshalling(object, this, maxDepth)
+    public delegateMarshalling(object,nullObject, maxDepth = 0) {
+        parentFactory.delegateMarshalling(object, this,nullObject, maxDepth)
     }
 
 

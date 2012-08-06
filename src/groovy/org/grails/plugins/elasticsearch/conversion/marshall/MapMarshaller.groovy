@@ -7,7 +7,7 @@ class MapMarshaller extends DefaultMarshaller {
       if (value instanceof Map) {
         marshallResult."${key}" = marshall(value)
       } else {
-        marshallResult."${key}" = marshallingContext.delegateMarshalling(value)
+        marshallResult."${key}" = marshallingContext.delegateMarshalling(value,[:])
       }
     }
     return marshallResult

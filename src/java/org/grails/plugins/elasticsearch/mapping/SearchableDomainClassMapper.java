@@ -286,7 +286,8 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
         return null;
     }
 
-    private Set<String> convertToSet(Object arg) {
+    @SuppressWarnings("unchecked")
+	private Set<String> convertToSet(Object arg) {
         if (arg == null) {
             return Collections.emptySet();
         } else if (arg instanceof String) {
@@ -294,7 +295,6 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
         } else if (arg instanceof Object[]) {
             return new HashSet<String>(Arrays.asList((String[]) arg));
         } else if (arg instanceof Collection) {
-            //noinspection unchecked
             return new HashSet<String>((Collection<String>) arg);
         } else {
             throw new IllegalArgumentException("Unknown argument: " + arg);

@@ -101,7 +101,8 @@ public class SearchableClassPropertyMapping {
         }
     }
 
-    public Class<?> getBestGuessReferenceType() {
+    @SuppressWarnings("rawtypes")
+	public Class getBestGuessReferenceType() {
         // is type defined explicitly?
         if (getReference() instanceof Class) {
             return (Class<?>) this.getReference();
@@ -131,7 +132,8 @@ public class SearchableClassPropertyMapping {
 
         // Are we referencing searchable class?
         if (this.getReference() != null) {
-            Class<?> myReferenceType = getBestGuessReferenceType();
+            @SuppressWarnings("rawtypes")
+			Class myReferenceType = getBestGuessReferenceType();
             // Compare using exact match of classes.
             // May not be correct to inheritance model.
             SearchableClassMapping scm = contextHolder.getMappingContextByType(myReferenceType);
