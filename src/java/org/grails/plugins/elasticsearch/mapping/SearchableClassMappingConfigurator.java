@@ -103,9 +103,13 @@ public class SearchableClassMappingConfigurator {
 
                         // If the index already exists, ignore the exception
                     } catch (IndexAlreadyExistsException iaee) {
-                        LOG.debug("Index " + scm.getIndexName() + " already exists, skip index creation.");
+                        LOG.debug("Index " + scm.getIndexName() + " already exists, skip index creation.", iaee);
                     } catch (RemoteTransportException rte) {
-                        LOG.debug(rte.getMessage());
+                        LOG.debug(rte.getMessage(), rte);
+                    } catch (Exception e) {
+                        LOG.debug("Exception occurred", e);
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
                     }
                 }
 
@@ -114,13 +118,19 @@ public class SearchableClassMappingConfigurator {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("[" + scm.getElasticTypeName() + "] => " + elasticMapping);
                 }
-                elasticSearchClient.admin().indices().putMapping(
+                try {
+                	elasticSearchClient.admin().indices().putMapping(
                         new PutMappingRequest(scm.getIndexName())
                                 .type(scm.getElasticTypeName())
                                 .source(elasticMapping)
-                ).actionGet();
+                			).actionGet();
+                } catch (Exception e) {
+                    LOG.error("[" + scm.getElasticTypeName() + "]",e);
+                    throw new RuntimeException(e);
+				}
             }
 
+            LOG.debug("mapping complete");
         }
 
         ClusterHealthResponse response = elasticSearchClient.admin().cluster().health(new ClusterHealthRequest().waitForYellowStatus()).actionGet();

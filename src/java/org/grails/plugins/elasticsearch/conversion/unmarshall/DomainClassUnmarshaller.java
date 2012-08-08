@@ -263,11 +263,18 @@ public class DomainClassUnmarshaller {
 
 
     private Object unmarshallDomain(GrailsDomainClass domainClass, Object providedId, Map<String, Object> data, DefaultUnmarshallingContext unmarshallingContext) {
+        LOG.debug("unmarshalling Domain");
         GrailsDomainClassProperty identifier = domainClass.getIdentifier();
         @SuppressWarnings("unchecked")
 		Object id = typeConverter.convertIfNecessary(providedId, identifier.getType());
         GroovyObject instance = (GroovyObject) domainClass.newInstance();
         instance.setProperty(identifier.getName(), id);
+        
+        if(data == null) {
+            LOG.debug("returning null");
+        	return null;
+        }
+        
         for(Map.Entry<String, Object> entry : data.entrySet()) {
             if (!entry.getKey().equals("class") && !entry.getKey().equals("id")) {
                 unmarshallingContext.getUnmarshallingStack().push(entry.getKey());

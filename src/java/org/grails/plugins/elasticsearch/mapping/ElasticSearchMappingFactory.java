@@ -87,9 +87,8 @@ public class ElasticSearchMappingFactory {
                     // Use 'string' type for properties with custom converter.
                     // Arrays are automatically resolved by ElasticSearch, so no worries.
                     propType = "string";
-                } else if (isStringType(property.getReferencedPropertyType())){
-                    // todo is this helping??
-                    propType = "string";
+                } else if (java.math.BigDecimal.class.isAssignableFrom(property.getReferencedPropertyType())) {
+                    propType = "double";
                 } else {
                     // todo should this be string??
                     propType = "object";
@@ -149,10 +148,6 @@ public class ElasticSearchMappingFactory {
         return (JODA_TIME_BASE != null && JODA_TIME_BASE.isAssignableFrom(type)) || java.util.Date.class.isAssignableFrom(type);
     }
     
-    private static boolean isStringType(Class<?> type) {
-        return (java.lang.String.class.isAssignableFrom(type));
-    }
-
     private static Map<String, Object> defaultDescriptor(String type, String index, boolean excludeFromAll) {
         Map<String, Object> props = new LinkedHashMap<String, Object>();
         props.put("type", type);
