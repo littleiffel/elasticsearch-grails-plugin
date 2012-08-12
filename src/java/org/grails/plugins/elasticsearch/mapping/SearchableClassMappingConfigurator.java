@@ -61,8 +61,6 @@ public class SearchableClassMappingConfigurator {
         LOG.debug("Installing mappings start ... ");
         Set<String> installedIndices = new HashSet<String>();
         Map<String, Object> settings = new HashMap<String, Object>();
-//        settings.put("number_of_shards", 5);        // must have 5 shards to be Green.
-//        settings.put("number_of_replicas", 2);
         settings.put("number_of_replicas", 0);
         // Look for default index settings.
 		@SuppressWarnings("rawtypes")
@@ -109,11 +107,9 @@ public class SearchableClassMappingConfigurator {
                         LOG.debug(rte.getMessage(), rte);
                     } catch (NoNodeAvailableException ne) {
                         LOG.error("no node", ne);
-                        // todo what do we do here??
-                        //return;
+                        throw new RuntimeException(ne);
                     } catch (Exception e) {
-                        LOG.debug("Exception occurred", e);
-                        e.printStackTrace();
+                        LOG.error("Exception occurred", e);
                         throw new RuntimeException(e);
                     }
                 }
@@ -139,7 +135,7 @@ public class SearchableClassMappingConfigurator {
         }
 
         ClusterHealthResponse response = elasticSearchClient.admin().cluster().health(new ClusterHealthRequest().waitForYellowStatus()).actionGet();
-        LOG.debug("Cluster status: " + response.getStatus());
+        LOG.info("Elasticsearch Cluster Status: " + response.getStatus());
     }
 
     private Collection<SearchableClassMapping> buildMappings() {

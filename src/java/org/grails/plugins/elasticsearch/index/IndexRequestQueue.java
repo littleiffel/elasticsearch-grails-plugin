@@ -193,8 +193,8 @@ public class IndexRequestQueue implements InitializingBean {
                     try {
                         LOG.debug("Indexing " + entry.getKey().getClazz() + "(index:" + scm.getIndexName() + ",type:" + scm.getElasticTypeName() +
                                 ") of id " + entry.getKey().getId() + " and source " + json.string());
-                 } catch (IOException e) {
-                 }
+                    } catch (IOException e) {
+                    }
                 }
             } finally {
                 persistenceInterceptor.destroy();
@@ -249,10 +249,9 @@ public class IndexRequestQueue implements InitializingBean {
          if (current.isComplete()) {
             it.remove();
          }
-      }
+       }
         
-        
-        LOG.debug("OperationBatchList cleaned");
+       LOG.debug("OperationBatchList cleaned");
     }
 
     class OperationBatch implements ActionListener<BulkResponse> {
@@ -305,6 +304,7 @@ public class IndexRequestQueue implements InitializingBean {
                         || item.getFailureMessage().indexOf("IndexShardMissingException") >= 0;
                 // On shard failure, do not re-push.
                 if (removeFromQueue) {
+                    LOG.error("Elastic type [" + item.getType() + "] has exceptions: " + item.getFailureMessage());
                     // remove successful OR fatal ones.
                     Class<?> entityClass = elasticSearchContextHolder.findMappedClassByElasticType(item.getType());
                     if (entityClass == null) {
@@ -373,11 +373,8 @@ public class IndexRequestQueue implements InitializingBean {
         }
     }
 
-	class IndexEntityKey implements Serializable {
+	class IndexEntityKey implements Serializable, Comparable<IndexEntityKey> {
 
-        /**
-		 * 
-		 */
 		private static final long serialVersionUID = -4266229881141586096L;
 		/**
          * stringified id.
@@ -439,5 +436,12 @@ public class IndexRequestQueue implements InitializingBean {
                     ", clazz=" + clazz +
                     '}';
         }
+
+		@Override
+		public int compareTo(IndexEntityKey compare) {
+			if ( this == compare ) return 1;
+			if ( this.equals(compare) ) return 1;
+			return 0;
+		}
     }
 }
