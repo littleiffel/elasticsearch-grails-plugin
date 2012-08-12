@@ -17,14 +17,15 @@ package org.grails.plugins.elasticsearch.index;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +50,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.orm.hibernate3.SessionFactoryUtils;
 import org.springframework.util.Assert;
 
+
 /**
  * Holds objects to be indexed.
  * <br/>
@@ -70,14 +72,13 @@ public class IndexRequestQueue implements InitializingBean {
     /**
      * A map containing the pending index requests.
      */
-    Map<IndexEntityKey, Object> indexRequests = new HashMap<IndexEntityKey, Object>();
-
+    Map<IndexEntityKey, Object> indexRequests = new ConcurrentSkipListMap<IndexEntityKey,Object>();
     /**
      * A set containing the pending delete requests.
      */
-    Set<IndexEntityKey> deleteRequests = new HashSet<IndexEntityKey>();
+    Set<IndexEntityKey> deleteRequests = new ConcurrentSkipListSet<IndexEntityKey>();
 
-    List<OperationBatch> operationBatchList = new LinkedList<OperationBatch>();
+    Queue<OperationBatch> operationBatchQueue = new ConcurrentLinkedQueue<OperationBatch>();
 
     /**
      * No-args constructor.
@@ -115,17 +116,13 @@ public class IndexRequestQueue implements InitializingBean {
     }
 
     public void addIndexRequest(Object instance, Serializable id) {
-        synchronized (this) {
             IndexEntityKey key = id == null ? new IndexEntityKey(instance) :
                     new IndexEntityKey(id.toString(), GrailsHibernateUtil.unwrapIfProxy(instance).getClass());
             indexRequests.put(key, GrailsHibernateUtil.unwrapIfProxy(instance));
-        }
     }
 
     public void addDeleteRequest(Object instance) {
-        synchronized (this) {
             deleteRequests.add(new IndexEntityKey(instance));
-        }
     }
 
     public XContentBuilder toJSON(Object instance) {
@@ -150,12 +147,10 @@ public class IndexRequestQueue implements InitializingBean {
         cleanOperationBatchList();
 
         // Copy existing queue to ensure we are interfering with incoming requests.
-        synchronized (this) {
-            toIndex.putAll(indexRequests);
-            toDelete.addAll(deleteRequests);
-            indexRequests.clear();
-            deleteRequests.clear();
-        }
+        toIndex.putAll(indexRequests);
+        toDelete.addAll(deleteRequests);
+        indexRequests.clear();
+        deleteRequests.clear();
 
         // If there are domain instances that are both in the index requests & delete requests list,
         // they are directly deleted.
@@ -198,8 +193,8 @@ public class IndexRequestQueue implements InitializingBean {
                     try {
                         LOG.debug("Indexing " + entry.getKey().getClazz() + "(index:" + scm.getIndexName() + ",type:" + scm.getElasticTypeName() +
                                 ") of id " + entry.getKey().getId() + " and source " + json.string());
-                    } catch (IOException e) {
-                    }
+                 } catch (IOException e) {
+                 }
                 }
             } finally {
                 persistenceInterceptor.destroy();
@@ -224,7 +219,7 @@ public class IndexRequestQueue implements InitializingBean {
         OperationBatch completeListener = null;
         if (bulkRequestBuilder.numberOfActions() > 0) {
             completeListener = new OperationBatch(2, toIndex, toDelete);
-            operationBatchList.add(completeListener);
+            operationBatchQueue.add(completeListener);
             try {
                 bulkRequestBuilder.execute().addListener(completeListener);
             } catch (Exception e) {
@@ -239,25 +234,24 @@ public class IndexRequestQueue implements InitializingBean {
 
     public void waitComplete() {
         LOG.debug("IndexRequestQueue.waitComplete() called");
-        List<OperationBatch> clone = new LinkedList<OperationBatch>();
-        synchronized (this) {
-            clone.addAll(operationBatchList);
-            operationBatchList.clear();
-        }
-        for (OperationBatch op : clone) {
+        Queue<OperationBatch> operationBatchQueueClone = new ConcurrentLinkedQueue<OperationBatch>();
+
+        operationBatchQueueClone.addAll(operationBatchQueue);
+        operationBatchQueue.clear();
+        for (OperationBatch op : operationBatchQueueClone) {
             op.waitComplete();
         }
     }
 
     private void cleanOperationBatchList() {
-        synchronized (this) {
-            for (Iterator<OperationBatch> it = operationBatchList.iterator(); it.hasNext(); ) {
-                OperationBatch current = it.next();
-                if (current.isComplete()) {
-                    it.remove();
-                }
-            }
-        }
+       for (Iterator<OperationBatch> it = operationBatchQueue.iterator(); it.hasNext(); ) {
+         OperationBatch current = it.next();
+         if (current.isComplete()) {
+            it.remove();
+         }
+      }
+        
+        
         LOG.debug("OperationBatchList cleaned");
     }
 
@@ -307,7 +301,8 @@ public class IndexRequestQueue implements InitializingBean {
         public void onResponse(BulkResponse bulkResponse) {
             for (BulkItemResponse item : bulkResponse.items()) {
                 boolean removeFromQueue = !item.isFailed()
-                        || item.getFailureMessage().indexOf("UnavailableShardsException") >= 0;
+                        || item.getFailureMessage().indexOf("UnavailableShardsException") >= 0 
+                        || item.getFailureMessage().indexOf("IndexShardMissingException") >= 0;
                 // On shard failure, do not re-push.
                 if (removeFromQueue) {
                     // remove successful OR fatal ones.
@@ -363,19 +358,15 @@ public class IndexRequestQueue implements InitializingBean {
         public void push() {
             LOG.debug("Pushing retry: " + toIndex.size() + " indexing, " + toDelete.size() + " deletes.");
             for (Map.Entry<IndexEntityKey, Object> entry : toIndex.entrySet()) {
-                synchronized (this) {
                     if (!indexRequests.containsKey(entry.getKey())) {
                         // Do not overwrite existing stuff in the queue.
                         indexRequests.put(entry.getKey(), entry.getValue());
                     }
-                }
             }
             for (IndexEntityKey key : toDelete) {
-                synchronized (this) {
                     if (!deleteRequests.contains(key)) {
                         deleteRequests.add(key);
                     }
-                }
             }
 
             executeRequests();
@@ -406,6 +397,10 @@ public class IndexRequestQueue implements InitializingBean {
                 throw new IllegalArgumentException("Class " + clazz + " is not a searchable domain class.");
             }
             Object _id = InvokerHelper.invokeMethod(instance, "ident", null);
+            if(_id==null) {
+            	String guid = (String) InvokerHelper.invokeMethod(instance, "getGuid", null);
+                throw new IllegalArgumentException("Class " + clazz + " does not have an id. guid: " + guid);
+            }
             this.id = (_id).toString();
         }
 

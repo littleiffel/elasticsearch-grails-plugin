@@ -23,6 +23,7 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.transport.RemoteTransportException;
 import org.grails.plugins.elasticsearch.ElasticSearchContextHolder;
@@ -106,6 +107,10 @@ public class SearchableClassMappingConfigurator {
                         LOG.debug("Index " + scm.getIndexName() + " already exists, skip index creation.", iaee);
                     } catch (RemoteTransportException rte) {
                         LOG.debug(rte.getMessage(), rte);
+                    } catch (NoNodeAvailableException ne) {
+                        LOG.error("no node", ne);
+                        // todo what do we do here??
+                        //return;
                     } catch (Exception e) {
                         LOG.debug("Exception occurred", e);
                         e.printStackTrace();
