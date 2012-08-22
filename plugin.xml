@@ -22,29 +22,29 @@
   </repositories>
   <dependencies>
     <runtime>
-      <dependency group='org.springframework' name='spring-test' version='3.1.0.RELEASE' />
+      <dependency group='org.codehaus.jackson' name='jackson-mapper-asl' version='1.8.5' />
       <dependency group='org.igniterealtime.smack' name='smack' version='3.1.0' />
-      <dependency group='org.apache.httpcomponents' name='httpcore' version='4.1' />
-      <dependency group='javax.mail' name='mail' version='1.4.5' />
       <dependency group='mysql' name='mysql-connector-java' version='5.1.18' />
       <dependency group='joda-time' name='joda-time' version='2.0' />
-      <dependency group='org.codehaus.jackson' name='jackson-mapper-asl' version='1.8.5' />
-      <dependency group='org.codehaus.groovy' name='groovy-xmlrpc' version='0.7' />
       <dependency group='org.apache.httpcomponents' name='httpclient' version='4.1' />
+      <dependency group='javax.mail' name='mail' version='1.4.5' />
+      <dependency group='org.apache.httpcomponents' name='httpcore' version='4.1' />
+      <dependency group='org.springframework' name='spring-test' version='3.1.0.RELEASE' />
+      <dependency group='org.codehaus.groovy' name='groovy-xmlrpc' version='0.7' />
     </runtime>
   </dependencies>
   <plugins>
     <compile>
-      <plugin group='org.grails.plugins' name='rest' version='0.7' />
       <plugin group='org.grails.plugins' name='jquery' version='1.7.2' />
       <plugin group='org.grails.plugins' name='hibernate' version='2.1.0' />
+      <plugin group='org.grails.plugins' name='rest' version='0.7' />
     </compile>
     <runtime>
-      <plugin group='org.grails.plugins' name='selenium' version='0.8' />
       <plugin group='org.grails.plugins' name='spring-security-core' version='1.2.7.3' />
-      <plugin group='org.grails.plugins' name='facebook-sdk' version='0.3.2' />
       <plugin group='org.grails.plugins' name='jquery-ui' version='1.8.15' />
+      <plugin group='org.grails.plugins' name='selenium' version='0.8' />
       <plugin group='org.grails.plugins' name='google-analytics' version='1.0' />
+      <plugin group='org.grails.plugins' name='facebook-sdk' version='0.3.2' />
     </runtime>
     <build>
       <plugin group='org.grails.plugins' name='tomcat' version='2.1.0' />

@@ -304,7 +304,8 @@ public class IndexRequestQueue implements InitializingBean {
                         || item.getFailureMessage().indexOf("IndexShardMissingException") >= 0;
                 // On shard failure, do not re-push.
                 if (removeFromQueue) {
-                    LOG.error("Elastic type [" + item.getType() + "] has exceptions: " + item.getFailureMessage());
+                    if(item.getFailureMessage()!=null)
+                    LOG.error("Elastic type [" + item.getType() + "] has failed: " + item.getFailureMessage());
                     // remove successful OR fatal ones.
                     Class<?> entityClass = elasticSearchContextHolder.findMappedClassByElasticType(item.getType());
                     if (entityClass == null) {
