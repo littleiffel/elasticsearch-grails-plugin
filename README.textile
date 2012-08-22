@@ -1,5 +1,7 @@
 h1. ElasticSearch Grails plugin
 
+This plugin now requests Java 7.  Using concurrent Maps, Sets and Lists that are only in Java 7.
+
 This plugin is providing an integration to Grails of the open source search engine "ElasticSearch":http://www.elasticsearch.org
 
 **Project tracker:** "http://doc4web.com/icescrum/p/ELASTIC#project":http://doc4web.com/icescrum/p/ELASTIC#project
