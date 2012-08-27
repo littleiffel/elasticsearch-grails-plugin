@@ -15,17 +15,13 @@
  */
 package org.grails.plugins.elasticsearch.index;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.Hashtable;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -69,16 +65,17 @@ public class IndexRequestQueue implements InitializingBean {
     private HibernatePersistenceContextInterceptor persistenceInterceptor;
     private SessionFactory sessionFactory;
 
+    private Object requestConsumer = new Object();
     /**
      * A map containing the pending index requests.
      */
-    Map<IndexEntityKey, Object> indexRequests = new ConcurrentSkipListMap<IndexEntityKey,Object>();
+    ConcurrentHashMap<IndexEntityKey, Object> indexRequests = new ConcurrentHashMap<IndexEntityKey,Object>();
     /**
      * A set containing the pending delete requests.
      */
-    Set<IndexEntityKey> deleteRequests = new ConcurrentSkipListSet<IndexEntityKey>();
+    ConcurrentHashMap<IndexEntityKey, Boolean> deleteRequests = new ConcurrentHashMap<IndexEntityKey, Boolean>();
 
-    Queue<OperationBatch> operationBatchQueue = new ConcurrentLinkedQueue<OperationBatch>();
+    ConcurrentLinkedQueue<OperationBatch> operationBatchQueue = new ConcurrentLinkedQueue<OperationBatch>();
 
     /**
      * No-args constructor.
@@ -116,13 +113,13 @@ public class IndexRequestQueue implements InitializingBean {
     }
 
     public void addIndexRequest(Object instance, Serializable id) {
-            IndexEntityKey key = id == null ? new IndexEntityKey(instance) :
-                    new IndexEntityKey(id.toString(), GrailsHibernateUtil.unwrapIfProxy(instance).getClass());
-            indexRequests.put(key, GrailsHibernateUtil.unwrapIfProxy(instance));
+        IndexEntityKey key = id == null ? new IndexEntityKey(instance) :
+          new IndexEntityKey(id.toString(), GrailsHibernateUtil.unwrapIfProxy(instance).getClass());
+        indexRequests.put(key, GrailsHibernateUtil.unwrapIfProxy(instance));
     }
 
     public void addDeleteRequest(Object instance) {
-            deleteRequests.add(new IndexEntityKey(instance));
+        deleteRequests.put(new IndexEntityKey(instance), true);
     }
 
     public XContentBuilder toJSON(Object instance) {
@@ -141,24 +138,26 @@ public class IndexRequestQueue implements InitializingBean {
      *         if there were no operations done on the method call.
      */
     public OperationBatch executeRequests() {
-        Map<IndexEntityKey, Object> toIndex = new LinkedHashMap<IndexEntityKey, Object>();
+        Map<IndexEntityKey, Object> toIndex = new Hashtable<IndexEntityKey, Object>();
         Set<IndexEntityKey> toDelete = new HashSet<IndexEntityKey>();
 
         cleanOperationBatchList();
 
-        // Copy existing queue to ensure we are interfering with incoming requests.
-        toIndex.putAll(indexRequests);
-        toDelete.addAll(deleteRequests);
-        indexRequests.clear();
-        deleteRequests.clear();
-
+        synchronized(requestConsumer) {
+          // Copy existing queue to ensure we are interfering with incoming requests.
+          toIndex.putAll(indexRequests);
+          toDelete.addAll(deleteRequests.keySet());
+          indexRequests.clear();
+          deleteRequests.clear();
+        }
+        
         // If there are domain instances that are both in the index requests & delete requests list,
         // they are directly deleted.
         toIndex.keySet().removeAll(toDelete);
 
         // If there is nothing in the queues, just stop here
         if (toIndex.isEmpty() && toDelete.isEmpty()) {
-            return null;
+          return null;
         }
 
         BulkRequestBuilder bulkRequestBuilder = elasticSearchClient.prepareBulk();
@@ -180,7 +179,7 @@ public class IndexRequestQueue implements InitializingBean {
 
                 LOG.debug("to JSON " + entity.toString());
                 XContentBuilder json = toJSON(entity);
-
+                
                 bulkRequestBuilder.add(
                         elasticSearchClient.prepareIndex()
                                 .setIndex(scm.getIndexName())
@@ -190,12 +189,11 @@ public class IndexRequestQueue implements InitializingBean {
                 );
                 LOG.debug("bulkRequestBuilder created");
                 if (LOG.isDebugEnabled()) {
-                    try {
-                        LOG.debug("Indexing " + entry.getKey().getClazz() + "(index:" + scm.getIndexName() + ",type:" + scm.getElasticTypeName() +
-                                ") of id " + entry.getKey().getId() + " and source " + json.string());
-                    } catch (IOException e) {
-                    }
+                    LOG.debug("Indexing " + entry.getKey().getClazz() + "(index:" + scm.getIndexName() + ",type:" + scm.getElasticTypeName() +
+                            ") of id " + entry.getKey().getId() + " and source " + json.string());
                 }
+            } catch(Exception e) {
+              LOG.error("Exception thrown trying to process ElasticSearch index queue: " + e.toString());
             } finally {
                 persistenceInterceptor.destroy();
             }
@@ -234,22 +232,20 @@ public class IndexRequestQueue implements InitializingBean {
 
     public void waitComplete() {
         LOG.debug("IndexRequestQueue.waitComplete() called");
-        Queue<OperationBatch> operationBatchQueueClone = new ConcurrentLinkedQueue<OperationBatch>();
 
-        operationBatchQueueClone.addAll(operationBatchQueue);
-        operationBatchQueue.clear();
-        for (OperationBatch op : operationBatchQueueClone) {
+        // our iterator is guaranteed to reflect the queue at construction and not throw concurrent modification exceptions
+        for (OperationBatch op : operationBatchQueue) {
             op.waitComplete();
+            operationBatchQueue.remove(op);
         }
     }
 
     private void cleanOperationBatchList() {
-       for (Iterator<OperationBatch> it = operationBatchQueue.iterator(); it.hasNext(); ) {
-         OperationBatch current = it.next();
-         if (current.isComplete()) {
-            it.remove();
-         }
-       }
+      for (OperationBatch op : operationBatchQueue) {
+        if (op.isComplete()) {
+          operationBatchQueue.remove(op);
+        }
+      }
         
        LOG.debug("OperationBatchList cleaned");
     }
@@ -359,22 +355,17 @@ public class IndexRequestQueue implements InitializingBean {
         public void push() {
             LOG.debug("Pushing retry: " + toIndex.size() + " indexing, " + toDelete.size() + " deletes.");
             for (Map.Entry<IndexEntityKey, Object> entry : toIndex.entrySet()) {
-                    if (!indexRequests.containsKey(entry.getKey())) {
-                        // Do not overwrite existing stuff in the queue.
-                        indexRequests.put(entry.getKey(), entry.getValue());
-                    }
+                indexRequests.putIfAbsent(entry.getKey(), entry.getValue());
             }
             for (IndexEntityKey key : toDelete) {
-                    if (!deleteRequests.contains(key)) {
-                        deleteRequests.add(key);
-                    }
+                deleteRequests.put(key, true);
             }
 
             executeRequests();
         }
     }
 
-	class IndexEntityKey implements Serializable, Comparable<IndexEntityKey> {
+	class IndexEntityKey implements Serializable {
 
 		private static final long serialVersionUID = -4266229881141586096L;
 		/**
@@ -382,7 +373,7 @@ public class IndexRequestQueue implements InitializingBean {
          */
         private final String id;
         private final Class<?> clazz;
-
+        
         IndexEntityKey(String id, Class<?> clazz) {
             this.id = id;
             this.clazz = clazz;
@@ -437,12 +428,5 @@ public class IndexRequestQueue implements InitializingBean {
                     ", clazz=" + clazz +
                     '}';
         }
-
-		@Override
-		public int compareTo(IndexEntityKey compare) {
-			if ( this == compare ) return 1;
-			if ( this.equals(compare) ) return 1;
-			return 0;
-		}
     }
 }
