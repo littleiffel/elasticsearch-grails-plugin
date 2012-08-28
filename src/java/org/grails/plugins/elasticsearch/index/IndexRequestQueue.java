@@ -16,8 +16,9 @@
 package org.grails.plugins.elasticsearch.index;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,7 +66,6 @@ public class IndexRequestQueue implements InitializingBean {
     private HibernatePersistenceContextInterceptor persistenceInterceptor;
     private SessionFactory sessionFactory;
 
-    private Object requestConsumer = new Object();
     /**
      * A map containing the pending index requests.
      */
@@ -138,16 +138,19 @@ public class IndexRequestQueue implements InitializingBean {
      *         if there were no operations done on the method call.
      */
     public OperationBatch executeRequests() {
-        Map<IndexEntityKey, Object> toIndex = new Hashtable<IndexEntityKey, Object>();
+        Map<IndexEntityKey, Object> toIndex = new HashMap<IndexEntityKey, Object>();
         Set<IndexEntityKey> toDelete = new HashSet<IndexEntityKey>();
 
         cleanOperationBatchList();
 
-        synchronized(requestConsumer) {
-          // Copy existing queue to ensure we are interfering with incoming requests.
+        synchronized(toIndex) {
+          // Copy existing queue to ensure we are not interfering with incoming requests.
           toIndex.putAll(indexRequests);
-          toDelete.addAll(deleteRequests.keySet());
           indexRequests.clear();
+        }
+        
+        synchronized(toDelete) {
+          toDelete.addAll(deleteRequests.keySet());
           deleteRequests.clear();
         }
         
@@ -231,23 +234,27 @@ public class IndexRequestQueue implements InitializingBean {
     }
 
     public void waitComplete() {
-        LOG.debug("IndexRequestQueue.waitComplete() called");
+      LOG.debug("IndexRequestQueue.waitComplete() called");
 
-        // our iterator is guaranteed to reflect the queue at construction and not throw concurrent modification exceptions
-        for (OperationBatch op : operationBatchQueue) {
-            op.waitComplete();
-            operationBatchQueue.remove(op);
-        }
+      // our iterator is guaranteed to reflect the queue at construction and not throw concurrent modification exceptions
+      for (Iterator<OperationBatch> opIter = operationBatchQueue.iterator(); opIter.hasNext();) {
+        OperationBatch op = opIter.next();
+        
+        op.waitComplete();
+        opIter.remove();
+      }
     }
 
     private void cleanOperationBatchList() {
-      for (OperationBatch op : operationBatchQueue) {
+      for (Iterator<OperationBatch> opIter = operationBatchQueue.iterator(); opIter.hasNext();) {
+        OperationBatch op = opIter.next();
+
         if (op.isComplete()) {
-          operationBatchQueue.remove(op);
+          opIter.remove();
         }
       }
-        
-       LOG.debug("OperationBatchList cleaned");
+
+      LOG.debug("OperationBatchList cleaned");
     }
 
     class OperationBatch implements ActionListener<BulkResponse> {
