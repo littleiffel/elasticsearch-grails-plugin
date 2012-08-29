@@ -31,7 +31,8 @@ public class SearchableClassMapping {
     /** Searchable root? */
     private boolean root = true;
     private boolean all = true;
-
+    private SearchableClassPropertyMapping parent = null;
+    
     public SearchableClassMapping(GrailsDomainClass domainClass, Collection<SearchableClassPropertyMapping> propertiesMapping) {
         this.domainClass = domainClass;
         this.propertiesMapping = propertiesMapping;
@@ -52,6 +53,14 @@ public class SearchableClassMapping {
 
     public void setRoot(Boolean root) {
         this.root = root != null && root;
+    }
+    
+    public SearchableClassPropertyMapping  getParent() {
+      return parent;
+    }
+    
+    public void setParent(SearchableClassPropertyMapping parent) {
+      this.parent = parent;
     }
 
     public Collection<SearchableClassPropertyMapping> getPropertiesMapping() {

@@ -34,12 +34,14 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.grails.plugins.elasticsearch.ElasticSearchContextHolder;
 import org.grails.plugins.elasticsearch.conversion.JSONDomainFactory;
 import org.grails.plugins.elasticsearch.exception.IndexException;
 import org.grails.plugins.elasticsearch.mapping.SearchableClassMapping;
+import org.grails.plugins.elasticsearch.mapping.SearchableClassPropertyMapping;
 import org.hibernate.LockOptions;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -131,6 +133,19 @@ public class IndexRequestQueue implements InitializingBean {
         }
     }
 
+    public String getInstanceParentId(Object instance, SearchableClassPropertyMapping scpm) {
+      Object parent = jsonDomainFactory.getInstanceProperty(instance, scpm);
+      Object _id = InvokerHelper.invokeMethod(parent, "ident", null);
+      Class<?> clazz = GrailsHibernateUtil.unwrapIfProxy(parent).getClass();
+      
+      if(_id==null) {
+          String guid = (String) InvokerHelper.invokeMethod(parent, "getGuid", null);
+          throw new IllegalArgumentException("Class " + clazz + " does not have an id. guid: " + guid);
+      }
+      
+      return _id.toString();
+    }
+    
     /**
      * Execute pending requests and clear both index & delete pending queues.
      *
@@ -183,13 +198,20 @@ public class IndexRequestQueue implements InitializingBean {
                 LOG.debug("to JSON " + entity.toString());
                 XContentBuilder json = toJSON(entity);
                 
-                bulkRequestBuilder.add(
-                        elasticSearchClient.prepareIndex()
-                                .setIndex(scm.getIndexName())
-                                .setType(scm.getElasticTypeName())
-                                .setId(entry.getKey().getId()) // TODO : Composite key ?
-                                .setSource(json)
-                );
+                IndexRequestBuilder builder = elasticSearchClient.prepareIndex()
+                    .setIndex(scm.getIndexName())
+                    .setType(scm.getElasticTypeName())
+                    .setId(entry.getKey().getId()) // TODO : Composite key ?
+                    .setSource(json);
+                
+                SearchableClassPropertyMapping parent = scm.getParent();
+                if (parent != null) {
+                  String parentId = getInstanceParentId(entity, parent);
+                  LOG.debug("Parent id for " + entry.getKey().getClazz() + " was " + parentId);
+                  builder.setParent(parentId);
+                }
+                
+                bulkRequestBuilder.add(builder);
                 LOG.debug("bulkRequestBuilder created");
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Indexing " + entry.getKey().getClazz() + "(index:" + scm.getIndexName() + ",type:" + scm.getElasticTypeName() +
@@ -397,7 +419,7 @@ public class IndexRequestQueue implements InitializingBean {
             	String guid = (String) InvokerHelper.invokeMethod(instance, "getGuid", null);
                 throw new IllegalArgumentException("Class " + clazz + " does not have an id. guid: " + guid);
             }
-            this.id = (_id).toString();
+            this.id = _id.toString();
         }
 
         public String getId() {

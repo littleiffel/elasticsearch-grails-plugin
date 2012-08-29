@@ -50,7 +50,8 @@ public class ElasticSearchMappingFactory {
     @SuppressWarnings("unchecked")
 	public static Map<String, Object> getElasticMapping(SearchableClassMapping scm) {
         Map<String, Object> elasticTypeMappingProperties = new LinkedHashMap<String, Object>();
-
+        String parentType = null;
+        
         if (!scm.isAll()) {
             // "_all" : {"enabled" : true}
             elasticTypeMappingProperties.put("_all",
@@ -119,6 +120,11 @@ public class ElasticSearchMappingFactory {
                     props.put("class", defaultDescriptor("string", "no", true));
                     props.put("ref", defaultDescriptor("string", "no", true));
                 }
+                
+                if (scpm.isParentKey()) {
+                  parentType = property.getTypePropertyName();
+                  scm.setParent(scpm);
+                }
             }
             propOptions.put("type", propType);
             // See http://www.elasticsearch.com/docs/elasticsearch/mapping/all_field/
@@ -138,8 +144,14 @@ public class ElasticSearchMappingFactory {
         }
 
         Map<String, Object> mapping = new LinkedHashMap<String, Object>();
-        mapping.put(scm.getElasticTypeName(),
-                Collections.singletonMap("properties", elasticTypeMappingProperties));
+        Map<String, Object> objectMapping = new LinkedHashMap<String, Object>();
+        
+        if (parentType != null) {
+          objectMapping.put("_parent", Collections.singletonMap("type", parentType));
+        }
+        
+        objectMapping.put("properties", elasticTypeMappingProperties);
+        mapping.put(scm.getElasticTypeName(), objectMapping);
 
         return mapping;
     }

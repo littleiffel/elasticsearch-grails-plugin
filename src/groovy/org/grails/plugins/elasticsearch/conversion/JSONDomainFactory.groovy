@@ -168,8 +168,10 @@ class JSONDomainFactory {
 			if(type.equals("string")) nullObject = ""
 			else if( type.equals("integer") || type.equals("long") || type.equals("float") || type.equals("double") ) 
 				nullObject = 0
-			else if(type.equals("set")|| type.equals("list") || type.equals("collection")) return []
-			else if(type.equals("map")) return [:]
+			else if(type.equals("set")|| type.equals("list") || type.equals("collection")) 
+                nullObject = []
+			else if(type.equals("map")) 
+                nullObject = [:]
             
             def res = delegateMarshalling(instance."${scpm.propertyName}", marshallingContext,nullObject)
             json.field(scpm.propertyName, res)
@@ -180,4 +182,7 @@ class JSONDomainFactory {
         json
     }
 	
+    public Object getInstanceProperty(instance, scpm) {
+      instance."${scpm.propertyName}"
+    }
 }

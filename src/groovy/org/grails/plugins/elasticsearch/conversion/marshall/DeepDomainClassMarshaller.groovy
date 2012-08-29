@@ -39,8 +39,8 @@ class DeepDomainClassMarshaller extends DefaultMarshaller {
 	  def type = shortTypeName.substring(0,1).toLowerCase(Locale.ENGLISH) + shortTypeName.substring(1);
 	  if(type.equals("string")) nullObject = new String() 
 	  else if( type.equals("long") || type.equals("integer") || type.equals("double") || type.equals("float") ) nullObject = 0
-	  else if(type.equals("set")|| type.equals("list") || type.equals("collection")) return []
-      else if(type.equals("map")) return [:]
+	  else if(type.equals("set")|| type.equals("list") || type.equals("collection")) nullObject = []
+      else if(type.equals("map")) nullObject = [:]
 	  log.debug("type: ${type}")
       
       // Domain marshalling
