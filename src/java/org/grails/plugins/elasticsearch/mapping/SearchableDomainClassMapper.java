@@ -34,6 +34,8 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
      */
     public static final String SEARCHABLE_PROPERTY_NAME = "searchable";
 
+    public static final List<String> DEFAULT_EXCEPT_PROPS = Arrays.asList("beforeInsert","beforeUpdate","beforeDelete","beforeValidate","afterInsert","afterUpdate","afterDelete","onLoad");
+    
     /**
      * Class mapping properties
      */
@@ -82,7 +84,7 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
     public void root(Boolean rootFlag) {
         this.root = rootFlag;
     }
-
+    
     /**
      * @return searchable domain class mapping
      */
@@ -130,7 +132,7 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
         Collections.reverse(superMappings);
 
         // hmm. should we only consider persistent properties?
-        for (GrailsDomainClassProperty prop : grailsDomainClass.getPersistentProperties()) {
+        for (GrailsDomainClassProperty prop : grailsDomainClass.getProperties()) {
             this.mappableProperties.add(prop.getName());
         }
 
@@ -155,6 +157,9 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
             }
         }
 
+        // Clear out blacklisted properties
+        mappableProperties.removeAll(DEFAULT_EXCEPT_PROPS);
+        
         // Populate default settings.
         // Clean out any per-property specs not allowed by 'only','except' rules.
 
@@ -233,8 +238,9 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
         if (!propsExcept.isEmpty()) {
             mappableProperties.removeAll(propsExcept);
         }
-        // Only keep the properties specified in the "only" rule
+        
         if (!propsOnly.isEmpty()) {
+            // Only keep the properties specified in the "only" rule
             // If we have inherited properties, we keep them nonetheless
             if (inherit) {
                 mappableProperties.retainAll(inheritedProperties);
