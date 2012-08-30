@@ -31,7 +31,7 @@ import org.grails.plugins.elasticsearch.ElasticSearchContextHolder;
 public class SearchableClassPropertyMapping {
 
     public static final Set<String> SEARCHABLE_MAPPING_OPTIONS = new HashSet<String>(Arrays.asList("boost", "index", "analyzer"));
-    public static final Set<String> SEARCHABLE_SPECIAL_MAPPING_OPTIONS = new HashSet<String>(Arrays.asList("component","converter","reference","excludeFromAll","maxDepth","parentKey"));
+    public static final Set<String> SEARCHABLE_SPECIAL_MAPPING_OPTIONS = new HashSet<String>(Arrays.asList("component","converter","reference","excludeFromAll","maxDepth","parentKey", "geoPoint"));
 
     /** Grails attributes of this property */
     GrailsDomainClassProperty grailsProperty;
@@ -79,6 +79,11 @@ public class SearchableClassPropertyMapping {
     public boolean isParentKey() {
       return specialAttributes.get("parentKey") != null;
     }
+    
+    public boolean isGeoPoint() {
+      return specialAttributes.get("geoPoint") != null;
+    }
+    
     /**
      * See http://www.elasticsearch.com/docs/elasticsearch/mapping/all_field/
      * @return exclude this property from ALL aggregate field?

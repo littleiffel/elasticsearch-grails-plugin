@@ -68,8 +68,12 @@ public class ElasticSearchMappingFactory {
             propOptions.putAll(scpm.getAttributes());
             if (!(SUPPORTED_FORMAT.contains(propType))) {
             	LOG.debug("propType not supported: " + propType + " name: " + property.getName());
-                // Handle embedded persistent collections, ie List<String> listOfThings
-                if (property.isBasicCollectionType()) {
+
+            	if (scpm.isGeoPoint()) {
+            	  propType = "geo_point";
+            	}
+            	else if (property.isBasicCollectionType()) {
+                    // Handle embedded persistent collections, ie List<String> listOfThings
                     String basicType = ClassUtils.getShortName(property.getReferencedPropertyType()).toLowerCase(Locale.ENGLISH);
                     if (SUPPORTED_FORMAT.contains(basicType)) {
                         propType = basicType;
