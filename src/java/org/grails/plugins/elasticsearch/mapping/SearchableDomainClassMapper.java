@@ -34,7 +34,7 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
      */
     public static final String SEARCHABLE_PROPERTY_NAME = "searchable";
 
-    public static final List<String> DEFAULT_EXCEPT_PROPS = Arrays.asList("beforeInsert","beforeUpdate","beforeDelete","beforeValidate","afterInsert","afterUpdate","afterDelete","onLoad");
+    public static final List<String> DEFAULT_EXCEPT_PROPS = Arrays.asList("version", "beforeInsert","beforeUpdate","beforeDelete","beforeValidate","afterInsert","afterUpdate","afterDelete","onLoad");
     
     /**
      * Class mapping properties
