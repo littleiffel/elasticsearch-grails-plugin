@@ -130,6 +130,9 @@ public class ElasticSearchMappingFactory {
                   scm.setParent(scpm);
                 }
             }
+            else if (scpm.isGeoPoint()) {
+              propType = "geo_point";
+            }
             propOptions.put("type", propType);
             // See http://www.elasticsearch.com/docs/elasticsearch/mapping/all_field/
             if (!propType.equals("object") && scm.isAll()) {
