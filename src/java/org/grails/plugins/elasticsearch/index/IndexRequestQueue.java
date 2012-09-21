@@ -65,13 +65,11 @@ public class IndexRequestQueue implements InitializingBean {
     private JSONDomainFactory jsonDomainFactory;
     private ElasticSearchContextHolder elasticSearchContextHolder;
     private Client elasticSearchClient;
-    private HibernatePersistenceContextInterceptor persistenceInterceptor;
-    private SessionFactory sessionFactory;
-
+    
     /**
      * A map containing the pending index requests.
      */
-    ConcurrentHashMap<IndexEntityKey, Object> indexRequests = new ConcurrentHashMap<IndexEntityKey,Object>();
+    ConcurrentHashMap<IndexEntityKey, XContentBuilder> indexRequests = new ConcurrentHashMap<IndexEntityKey,XContentBuilder>();
     /**
      * A set containing the pending delete requests.
      */
@@ -96,20 +94,11 @@ public class IndexRequestQueue implements InitializingBean {
     public void setElasticSearchClient(Client elasticSearchClient) {
         this.elasticSearchClient = elasticSearchClient;
     }
-
-    public void setSessionFactory(SessionFactory sessionFactory) {
-        this.sessionFactory = sessionFactory;
-    }
-
-    /**
-     */
+    
     public void afterPropertiesSet() throws Exception {
-        Assert.notNull(sessionFactory);
-        persistenceInterceptor = new HibernatePersistenceContextInterceptor();
-        persistenceInterceptor.setSessionFactory(sessionFactory);
-        persistenceInterceptor.setReadOnly();
+      
     }
-
+    
     public void addIndexRequest(Object instance) {
         addIndexRequest(instance, null);
     }
@@ -117,7 +106,7 @@ public class IndexRequestQueue implements InitializingBean {
     public void addIndexRequest(Object instance, Serializable id) {
         IndexEntityKey key = id == null ? new IndexEntityKey(instance) :
           new IndexEntityKey(id.toString(), GrailsHibernateUtil.unwrapIfProxy(instance).getClass());
-        indexRequests.put(key, GrailsHibernateUtil.unwrapIfProxy(instance));
+        indexRequests.put(key, toJSON(GrailsHibernateUtil.unwrapIfProxy(instance)));
     }
 
     public void addDeleteRequest(Object instance) {
@@ -153,7 +142,7 @@ public class IndexRequestQueue implements InitializingBean {
      *         if there were no operations done on the method call.
      */
     public OperationBatch executeRequests() {
-        Map<IndexEntityKey, Object> toIndex = new HashMap<IndexEntityKey, Object>();
+        Map<IndexEntityKey, XContentBuilder> toIndex = new HashMap<IndexEntityKey, XContentBuilder>();
         Set<IndexEntityKey> toDelete = new HashSet<IndexEntityKey>();
 
         cleanOperationBatchList();
@@ -182,21 +171,10 @@ public class IndexRequestQueue implements InitializingBean {
         //bulkRequestBuilder.setRefresh(true);
 
         // Execute index requests
-        for (Map.Entry<IndexEntityKey, Object> entry : toIndex.entrySet()) {
+        for (Map.Entry<IndexEntityKey, XContentBuilder> entry : toIndex.entrySet()) {
             SearchableClassMapping scm = elasticSearchContextHolder.getMappingContextByType(entry.getKey().getClazz());
-            persistenceInterceptor.init();
             try {
-                Session session = SessionFactoryUtils.getSession(sessionFactory, true);
-                Object entity = entry.getValue();
-
-                // If this not a transient instance, reattach it to the session
-                if (session.contains(entity)) {
-                	session.buildLockRequest(LockOptions.NONE).lock(entity);
-                    LOG.debug("Reattached entity to session with new lock");
-                }
-
-                LOG.debug("to JSON " + entity.toString());
-                XContentBuilder json = toJSON(entity);
+                XContentBuilder json = entry.getValue();
                 
                 IndexRequestBuilder builder = elasticSearchClient.prepareIndex()
                     .setIndex(scm.getIndexName())
@@ -204,11 +182,9 @@ public class IndexRequestQueue implements InitializingBean {
                     .setId(entry.getKey().getId()) // TODO : Composite key ?
                     .setSource(json);
                 
-                SearchableClassPropertyMapping parent = scm.getParent();
-                if (parent != null) {
-                  String parentId = getInstanceParentId(entity, parent);
-                  LOG.debug("Parent id for " + entry.getKey().getClazz() + " was " + parentId);
-                  builder.setParent(parentId);
+                if(entry.getKey().getParentId() != null)
+                {
+                  builder.setParent(entry.getKey().getParentId());
                 }
                 
                 bulkRequestBuilder.add(builder);
@@ -219,8 +195,6 @@ public class IndexRequestQueue implements InitializingBean {
                 }
             } catch(Exception e) {
               LOG.error("Exception thrown trying to process ElasticSearch index queue: " + e.toString());
-            } finally {
-                persistenceInterceptor.destroy();
             }
         }
 
@@ -282,11 +256,11 @@ public class IndexRequestQueue implements InitializingBean {
     class OperationBatch implements ActionListener<BulkResponse> {
 
 		private int attempts;
-        private Map<IndexEntityKey, Object> toIndex;
+        private Map<IndexEntityKey, XContentBuilder> toIndex;
         private Set<IndexEntityKey> toDelete;
         private CountDownLatch synchronizedCompletion = new CountDownLatch(1);
 
-        OperationBatch(int attempts, Map<IndexEntityKey, Object> toIndex, Set<IndexEntityKey> toDelete) {
+        OperationBatch(int attempts, Map<IndexEntityKey, XContentBuilder> toIndex, Set<IndexEntityKey> toDelete) {
             this.attempts = attempts;
             this.toIndex = toIndex;
             this.toDelete = toDelete;
@@ -383,7 +357,7 @@ public class IndexRequestQueue implements InitializingBean {
          */
         public void push() {
             LOG.debug("Pushing retry: " + toIndex.size() + " indexing, " + toDelete.size() + " deletes.");
-            for (Map.Entry<IndexEntityKey, Object> entry : toIndex.entrySet()) {
+            for (Map.Entry<IndexEntityKey, XContentBuilder> entry : toIndex.entrySet()) {
                 indexRequests.putIfAbsent(entry.getKey(), entry.getValue());
             }
             for (IndexEntityKey key : toDelete) {
@@ -402,10 +376,12 @@ public class IndexRequestQueue implements InitializingBean {
          */
         private final String id;
         private final Class<?> clazz;
+        private final String parentId;
         
         IndexEntityKey(String id, Class<?> clazz) {
             this.id = id;
             this.clazz = clazz;
+            this.parentId = null;
         }
 
         IndexEntityKey(Object instance) {
@@ -420,6 +396,15 @@ public class IndexRequestQueue implements InitializingBean {
                 throw new IllegalArgumentException("Class " + clazz + " does not have an id. guid: " + guid);
             }
             this.id = _id.toString();
+            
+            SearchableClassPropertyMapping parent = scm.getParent();
+            if (parent != null) {
+              String parentId = getInstanceParentId(instance, parent);
+              LOG.debug("Parent id for " + this.clazz + " was " + parentId);
+              this.parentId = parentId;
+            } else {
+              this.parentId = null;
+            }
         }
 
         public String getId() {
@@ -428,6 +413,10 @@ public class IndexRequestQueue implements InitializingBean {
 
         public Class<?> getClazz() {
             return clazz;
+        }
+        
+        public String getParentId() {
+            return parentId;
         }
 
         @Override
