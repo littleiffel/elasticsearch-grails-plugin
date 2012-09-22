@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil;
-import org.codehaus.groovy.grails.orm.hibernate.support.HibernatePersistenceContextInterceptor;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -42,13 +41,7 @@ import org.grails.plugins.elasticsearch.conversion.JSONDomainFactory;
 import org.grails.plugins.elasticsearch.exception.IndexException;
 import org.grails.plugins.elasticsearch.mapping.SearchableClassMapping;
 import org.grails.plugins.elasticsearch.mapping.SearchableClassPropertyMapping;
-import org.hibernate.LockOptions;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.orm.hibernate3.SessionFactoryUtils;
-import org.springframework.util.Assert;
-
 
 /**
  * Holds objects to be indexed.

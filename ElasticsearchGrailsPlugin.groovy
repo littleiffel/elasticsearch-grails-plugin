@@ -93,7 +93,7 @@ class ElasticsearchGrailsPlugin {
         }
         elasticSearchContextHolder(ElasticSearchContextHolder) {
             config = esConfig
-			grailsApplication=application
+      grailsApplication=application
         }
         elasticSearchClient(ClientNodeFactoryBean) { bean ->
             elasticSearchContextHolder = ref("elasticSearchContextHolder")
@@ -103,7 +103,6 @@ class ElasticsearchGrailsPlugin {
             elasticSearchContextHolder = ref("elasticSearchContextHolder")
             elasticSearchClient = ref("elasticSearchClient")
             jsonDomainFactory = ref("jsonDomainFactory")
-            sessionFactory = ref("sessionFactory")
         }
         searchableClassMappingConfigurator(SearchableClassMappingConfigurator) { bean ->
             elasticSearchContext = ref("elasticSearchContextHolder")
