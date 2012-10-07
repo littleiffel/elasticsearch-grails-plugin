@@ -27,7 +27,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
-import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -98,8 +97,8 @@ public class IndexRequestQueue implements InitializingBean {
 
     public void addIndexRequest(Object instance, Serializable id) {
         IndexEntityKey key = id == null ? new IndexEntityKey(instance) :
-          new IndexEntityKey(id.toString(), GrailsHibernateUtil.unwrapIfProxy(instance).getClass());
-        indexRequests.put(key, toJSON(GrailsHibernateUtil.unwrapIfProxy(instance)));
+          new IndexEntityKey(id.toString(), instance.getClass());
+        indexRequests.put(key, toJSON(instance));
     }
 
     public void addDeleteRequest(Object instance) {
@@ -118,7 +117,7 @@ public class IndexRequestQueue implements InitializingBean {
     public String getInstanceParentId(Object instance, SearchableClassPropertyMapping scpm) {
       Object parent = jsonDomainFactory.getInstanceProperty(instance, scpm);
       Object _id = InvokerHelper.invokeMethod(parent, "ident", null);
-      Class<?> clazz = GrailsHibernateUtil.unwrapIfProxy(parent).getClass();
+      Class<?> clazz = parent.getClass();
       
       if(_id==null) {
           String guid = (String) InvokerHelper.invokeMethod(parent, "getGuid", null);
@@ -378,7 +377,7 @@ public class IndexRequestQueue implements InitializingBean {
         }
 
         IndexEntityKey(Object instance) {
-            this.clazz = GrailsHibernateUtil.unwrapIfProxy(instance).getClass();
+            this.clazz = instance.getClass();
             SearchableClassMapping scm = elasticSearchContextHolder.getMappingContextByType(this.clazz);
             if (scm == null) {
                 throw new IllegalArgumentException("Class " + clazz + " is not a searchable domain class.");

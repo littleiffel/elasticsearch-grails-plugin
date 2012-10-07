@@ -17,8 +17,7 @@
 import grails.util.GrailsUtil
 import org.apache.log4j.Logger
 import org.codehaus.groovy.grails.commons.GrailsApplication
-import org.codehaus.groovy.grails.orm.hibernate.HibernateEventListeners
-import org.grails.plugins.elasticsearch.AuditEventListener
+import org.grails.plugins.elasticsearch.ElasticSearchEventListener
 import org.grails.plugins.elasticsearch.ClientNodeFactoryBean
 import org.grails.plugins.elasticsearch.ElasticSearchContextHolder
 import org.grails.plugins.elasticsearch.ElasticSearchHelper
@@ -29,6 +28,7 @@ import org.grails.plugins.elasticsearch.index.IndexRequestQueue
 import org.grails.plugins.elasticsearch.mapping.SearchableClassMappingConfigurator
 import org.grails.plugins.elasticsearch.util.DomainDynamicMethodsUtils
 import org.springframework.context.ApplicationContext
+import org.grails.datastore.mapping.core.Datastore
 
 class ElasticsearchGrailsPlugin {
 
@@ -41,8 +41,7 @@ class ElasticsearchGrailsPlugin {
     def grailsVersion = "1.3.0 > *"
     // the other plugins this plugin depends on
     def dependsOn = [
-            domainClass: "1.0 > *",
-            hibernate: "1.0 > *"
+            domainClass: "1.0 > *"
     ]
     def loadAfter = ['services']
 
@@ -124,23 +123,6 @@ class ElasticsearchGrailsPlugin {
             elasticSearchContextHolder = ref("elasticSearchContextHolder")
             grailsApplication = ref("grailsApplication")
         }
-        auditListener(AuditEventListener) {
-            elasticSearchContextHolder = ref("elasticSearchContextHolder")
-        }
-
-        if (!esConfig.disableAutoIndex) {
-            // do not install audit listener if auto-indexing is disabled.
-            hibernateEventListeners(HibernateEventListeners) {
-                listenerMap = [
-                        'post-delete': auditListener,
-                        'post-collection-update': auditListener,
-//                        'save-update': auditListener,
-                        'post-update': auditListener,
-                        'post-insert': auditListener,
-                        'flush': auditListener
-                ]
-            }
-        }
     }
 
     def onShutdown = { event ->
@@ -152,7 +134,11 @@ class ElasticsearchGrailsPlugin {
     }
 
     def doWithApplicationContext = { applicationContext ->
-        // Implement post initialization spring config (optional)
+      // Implement post initialization spring config (optional)
+//      if (!esConfig.disableAutoIndex) {
+      applicationContext.getBeansOfType(Datastore).each { k, datastore ->
+        applicationContext.addApplicationListener new ElasticSearchEventListener(datastore, applicationContext, applicationContext.elasticSearchContextHolder)
+      }
     }
 
     def onChange = { event ->

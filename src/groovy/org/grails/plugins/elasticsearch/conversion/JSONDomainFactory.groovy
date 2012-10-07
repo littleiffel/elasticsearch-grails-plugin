@@ -35,7 +35,6 @@ import java.util.Set;
 import org.grails.plugins.elasticsearch.conversion.marshall.PropertyEditorMarshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.Marshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.SearchableReferenceMarshaller
-import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
 import org.apache.commons.lang.ClassUtils
 import org.apache.commons.logging.LogFactory
 
@@ -138,7 +137,7 @@ class JSONDomainFactory {
 	
 
     private GrailsDomainClass getDomainClass(instance) {
-        grailsApplication.domainClasses.find {it.clazz == GrailsHibernateUtil.unwrapIfProxy(instance).class}
+        grailsApplication.domainClasses.find {it.clazz == instance.class}
     }
 
     /**

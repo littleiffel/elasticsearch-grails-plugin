@@ -1,5 +1,5 @@
 package test
-
+/*
 import grails.plugin.spock.IntegrationSpec
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.Requests
@@ -80,3 +80,4 @@ class ElasticSearchServiceSpec extends IntegrationSpec {
 
     }
 }
+*/

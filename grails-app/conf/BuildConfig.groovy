@@ -27,6 +27,7 @@ grails.project.dependency.resolution = {
         //mavenRepo "http://download.java.net/maven/2/"
         //mavenRepo "http://repository.jboss.com/maven2/"
         mavenRepo "http://oss.sonatype.org/content/repositories/releases/"
+        mavenRepo "http://oss.sonatype.org/content/repositories/snapshots/"
     }
     dependencies {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes eg.
@@ -34,12 +35,12 @@ grails.project.dependency.resolution = {
         runtime "org.elasticsearch:elasticsearch-lang-groovy:1.1.0"
     }
     plugins {
-		runtime ":hibernate:$grailsVersion"
         build (":release:latest.integration", ":rest-client-builder:latest.integration") {
             export = false
         }
-        test (":spock:0.6") {
+/*        test (":spock:0.6") {
             export = false
         }
+*/
     }
 }
