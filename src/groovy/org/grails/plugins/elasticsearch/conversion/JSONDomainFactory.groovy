@@ -19,6 +19,7 @@ package org.grails.plugins.elasticsearch.conversion
 import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
 import org.elasticsearch.common.xcontent.XContentBuilder
 import static org.elasticsearch.common.xcontent.XContentFactory.*
+import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.grails.plugins.elasticsearch.conversion.marshall.DeepDomainClassMarshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.DefaultMarshallingContext
@@ -147,6 +148,7 @@ class JSONDomainFactory {
      * @return
      */
     public XContentBuilder buildJSON(instance) {
+        instance = GrailsHibernateUtil.unwrapIfProxy(instance)
         def domainClass = getDomainClass(instance)
         def json = jsonBuilder().startObject()
         // TODO : add maxDepth in custom mapping (only for "seachable components")

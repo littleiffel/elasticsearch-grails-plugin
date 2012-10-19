@@ -1,5 +1,7 @@
 package org.grails.plugins.elasticsearch.conversion.marshall
 
+import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
+
 class DefaultMarshaller implements Marshaller {
     
     DefaultMarshallingContext marshallingContext
@@ -14,6 +16,7 @@ class DefaultMarshaller implements Marshaller {
      * @return marshall result (Map/String/etc.)
      */
     public marshall(object) {
+        object = GrailsHibernateUtil.unwrapIfProxy(object)
         def marshallResult = nullValue()
         if (object == null) {
             return nullValue()
