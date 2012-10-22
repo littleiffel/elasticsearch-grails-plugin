@@ -67,7 +67,7 @@ class ElasticSearchEventListener extends AbstractPersistenceEventListener {
      * Push object to delete.
      * @param obj object to delete
      */
-    def pushToDelete(entityName, id, obj) {
+    def pushToDelete(obj) {
       indexRequestQueue.addDeleteRequest(obj)
     }
 
