@@ -43,7 +43,7 @@ import org.apache.commons.logging.LogFactory
 /**
  * Marshall objects as JSON.
  */
-class JSONDomainFactory {
+public class JSONDomainFactory {
 	
 	private static final Set<String> SUPPORTED_FORMAT = new HashSet<String>(Arrays.asList(
 		"string", "integer", "long", "float", "double", "boolean", "null", "date"));
@@ -59,7 +59,9 @@ class JSONDomainFactory {
             (Map): MapMarshaller,
             (Collection): CollectionMarshaller
     ]
-
+    
+    def public static SPECIAL_MARSHALLERS = [:]
+    
     /**
      * Create and use the correct marshaller for a peculiar class
      * @param object The instance to marshall
@@ -148,6 +150,12 @@ class JSONDomainFactory {
      * @return
      */
     public XContentBuilder buildJSON(instance) {
+        def objectClass = instance.class
+        
+        if (SPECIAL_MARSHALLERS[objectClass]) {
+            return SPECIAL_MARSHALLERS[objectClass](jsonBuilder(), instance)
+        }
+        
         instance = GrailsHibernateUtil.unwrapIfProxy(instance)
         def domainClass = getDomainClass(instance)
         def json = jsonBuilder().startObject()
