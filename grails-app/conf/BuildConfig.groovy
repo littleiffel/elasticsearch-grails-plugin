@@ -34,7 +34,7 @@ grails.project.dependency.resolution = {
         //runtime "org.elasticsearch:elasticsearch:0.19.9"
         //runtime "org.elasticsearch:elasticsearch-lang-groovy:1.1.0"
         runtime "org.elasticsearch:elasticsearch:0.90.2"
-        runtime "org.elasticsearch:elasticsearch-lang-groovy:1.2.0"
+        runtime "org.elasticsearch:elasticsearch-lang-groovy:1.5.0"
     }
     plugins {
       build ':release:2.2.1', ':rest-client-builder:1.0.3', {

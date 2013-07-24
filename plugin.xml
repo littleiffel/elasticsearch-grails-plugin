@@ -20,8 +20,8 @@
   </repositories>
   <dependencies>
     <runtime>
-      <dependency group='org.elasticsearch' name='elasticsearch' version='0.90.2' />
       <dependency group='org.elasticsearch' name='elasticsearch-lang-groovy' version='1.2.0' />
+      <dependency group='org.elasticsearch' name='elasticsearch' version='0.90.2' />
     </runtime>
   </dependencies>
   <plugins>
