@@ -1,4 +1,4 @@
-<plugin name='elasticsearch' version='0.19.4-SNAPSHOT' grailsVersion='2.1.1 &gt; *'>
+<plugin name='elasticsearch' version='0.90.2-SNAPSHOT' grailsVersion='1.3.0 &gt; *'>
   <author>Manuarii Stein</author>
   <authorEmail>mstein@doc4web.com</authorEmail>
   <title>Elastic Search Plugin</title>
@@ -11,51 +11,29 @@
     <resource>ElasticsearchBootStrap</resource>
     <resource>org.grails.plugins.elasticsearch.ElasticSearchAdminService</resource>
     <resource>org.grails.plugins.elasticsearch.ElasticSearchService</resource>
-    <resource>test.RoleConverter</resource>
   </resources>
   <repositories>
     <repository name='grailsCentral' url='http://grails.org/plugins' />
-    <repository name='http://repo.grails.org/grails/core' url='http://repo.grails.org/grails/core/' />
     <repository name='mavenCentral' url='http://repo1.maven.org/maven2/' />
     <repository name='http://oss.sonatype.org/content/repositories/releases/' url='http://oss.sonatype.org/content/repositories/releases/' />
     <repository name='http://oss.sonatype.org/content/repositories/snapshots/' url='http://oss.sonatype.org/content/repositories/snapshots/' />
-    <repository name='Codehaus' url='http://repository.codehaus.org/' />
-    <repository name='http://maven.glassfish.org/content/groups/public/' url='http://maven.glassfish.org/content/groups/public/' />
   </repositories>
   <dependencies>
     <runtime>
-      <dependency group='javax.mail' name='mail' version='1.4.5' />
-      <dependency group='org.springframework' name='spring-test' version='3.1.2.RELEASE' />
-      <dependency group='org.codehaus.jackson' name='jackson-mapper-asl' version='1.8.5' />
-      <dependency group='mysql' name='mysql-connector-java' version='5.1.18' />
-      <dependency group='org.igniterealtime.smack' name='smack' version='3.1.0' />
-      <dependency group='org.springframework' name='spring-test' version='3.1.0.RELEASE' />
-      <dependency group='org.apache.httpcomponents' name='httpclient' version='4.1' />
-      <dependency group='org.igniterealtime.smack' name='smack' version='3.1.0' />
-      <dependency group='org.apache.httpcomponents' name='httpcore' version='4.1' />
-      <dependency group='org.codehaus.groovy' name='groovy-xmlrpc' version='0.7' />
-      <dependency group='joda-time' name='joda-time' version='2.0' />
+      <dependency group='org.elasticsearch' name='elasticsearch' version='0.90.2' />
+      <dependency group='org.elasticsearch' name='elasticsearch-lang-groovy' version='1.2.0' />
     </runtime>
   </dependencies>
   <plugins>
     <compile>
-      <plugin group='org.grails.plugins' name='jquery' version='1.7.2' />
-      <plugin group='org.grails.plugins' name='rest' version='0.7' />
-      <plugin group='org.grails.plugins' name='jquery' version='1.8.0' />
-      <plugin group='org.grails.plugins' name='hibernate' version='2.1.1' />
+      <plugin group='org.grails.plugins' name='hibernate' version='2.2.2' />
     </compile>
-    <runtime>
-      <plugin group='org.grails.plugins' name='facebook-sdk' version='0.3.2' />
-      <plugin group='org.grails.plugins' name='google-analytics' version='2.0' />
-      <plugin group='org.grails.plugins' name='cache' version='1.0.0' />
-      <plugin group='org.grails.plugins' name='grails-melody' version='1.12' />
-      <plugin group='org.grails.plugins' name='selenium' version='0.8' />
-      <plugin group='org.grails.plugins' name='spring-security-core' version='1.2.7.3' />
-    </runtime>
     <build>
-      <plugin group='org.grails.plugins' name='tomcat' version='2.1.1' />
+      <plugin group='org.grails.plugins' name='tomcat' version='2.2.2' />
     </build>
   </plugins>
-  <runtimePluginRequirements />
+  <runtimePluginRequirements>
+    <plugin name='domainClass' version='1.0 &gt; *' />
+  </runtimePluginRequirements>
   <behavior />
 </plugin>
