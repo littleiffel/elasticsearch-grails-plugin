@@ -31,16 +31,17 @@ grails.project.dependency.resolution = {
     }
     dependencies {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes eg.
-        runtime "org.elasticsearch:elasticsearch:0.19.9"
-        runtime "org.elasticsearch:elasticsearch-lang-groovy:1.1.0"
+        //runtime "org.elasticsearch:elasticsearch:0.19.9"
+        //runtime "org.elasticsearch:elasticsearch-lang-groovy:1.1.0"
+        runtime "org.elasticsearch:elasticsearch:0.90.2"
+        runtime "org.elasticsearch:elasticsearch-lang-groovy:1.2.0"
     }
     plugins {
-        build (":release:latest.integration", ":rest-client-builder:latest.integration") {
-            export = false
-        }
-/*        test (":spock:0.6") {
-            export = false
-        }
-*/
+      build ':release:2.2.1', ':rest-client-builder:1.0.3', {
+      export = false
+      }
+      compile ":hibernate:$grailsVersion"
+      build   ":tomcat:$grailsVersion"
+
     }
 }
