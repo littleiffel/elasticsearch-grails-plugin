@@ -18,9 +18,21 @@ package org.grails.plugins.elasticsearch.conversion.unmarshall;
 
 import groovy.lang.GroovyObject;
 
+import java.beans.PropertyEditor;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
+
 import org.apache.commons.lang.WordUtils;
-import org.apache.log4j.Logger;
-import org.codehaus.groovy.grails.commons.*;
+import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler;
+import org.codehaus.groovy.grails.commons.GrailsApplication;
+import org.codehaus.groovy.grails.commons.GrailsClass;
+import org.codehaus.groovy.grails.commons.GrailsDomainClass;
+import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty;
 import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.elasticsearch.action.get.GetRequest;
@@ -31,18 +43,17 @@ import org.elasticsearch.search.SearchHits;
 import org.grails.plugins.elasticsearch.ElasticSearchContextHolder;
 import org.grails.plugins.elasticsearch.mapping.SearchableClassMapping;
 import org.grails.plugins.elasticsearch.mapping.SearchableClassPropertyMapping;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.SimpleTypeConverter;
 import org.springframework.beans.TypeConverter;
-
-import java.beans.PropertyEditor;
-import java.util.*;
 
 /**
  * Domain class unmarshaller.
  */
 public class DomainClassUnmarshaller {
 
-    private static final Logger LOG = Logger.getLogger(DomainClassUnmarshaller.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DomainClassUnmarshaller.class);
 
     private TypeConverter typeConverter = new SimpleTypeConverter();
     private ElasticSearchContextHolder elasticSearchContextHolder;
@@ -110,7 +121,7 @@ public class DomainClassUnmarshaller {
         }
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings({ "unchecked", "rawtypes" })
 	private void populateProperty(String path, Map<String, Object> rebuiltProperties, Object value) {
         String last = null;
         Object currentProperty = rebuiltProperties;
@@ -122,16 +133,14 @@ public class DomainClassUnmarshaller {
             if (index < size - 1) {
                 try {
                     if (currentProperty instanceof List) {
-                        //noinspection unchecked
-                        //currentProperty = DefaultGroovyMethods.getAt(((Collection<Object>) currentProperty).iterator(), DefaultGroovyMethods.toInteger(part));
-                        currentProperty = DefaultGroovyMethods.getAt((List<?>) currentProperty, DefaultGroovyMethods.toInteger(part));
+                    		Integer i = Integer.valueOf(part.trim());
+                        currentProperty = DefaultGroovyMethods.getAt((List<?>) currentProperty, i);
                     } else {
                         currentProperty = DefaultGroovyMethods.getAt(currentProperty, part);
                     }
                 } catch (Exception e) {
                     LOG.warn("/!\\ Error when trying to populate " + path);
                     LOG.warn("Cannot get " + part + " on " + currentProperty + " from " + rebuiltProperties);
-                    e.printStackTrace();
                 }
             }
             if (!st.hasMoreTokens()) {
@@ -140,7 +149,7 @@ public class DomainClassUnmarshaller {
             index++;
         }
         try {
-            Integer.parseInt(last);
+            Integer.parseInt(last.trim());
             ((Collection) currentProperty).add(value);
         } catch (NumberFormatException e) {
             DefaultGroovyMethods.putAt(currentProperty, last, value);
@@ -258,7 +267,7 @@ public class DomainClassUnmarshaller {
                 .type(name)
                 .id(typeConverter.convertIfNecessary(id, String.class)))
                 .actionGet();
-        return unmarshallDomain(domainClass, response.id(), response.sourceAsMap(), unmarshallingContext);
+        return unmarshallDomain(domainClass, response.getId(), response.getSourceAsMap(), unmarshallingContext);
     }
 
 

@@ -289,7 +289,7 @@ public class IndexRequestQueue implements InitializingBean {
         }
 
         public void onResponse(BulkResponse bulkResponse) {
-            for (BulkItemResponse item : bulkResponse.items()) {
+            for (BulkItemResponse item : bulkResponse.getItems()) {
                 boolean removeFromQueue = !item.isFailed()
                         || item.getFailureMessage().indexOf("UnavailableShardsException") >= 0 
                         || item.getFailureMessage().indexOf("IndexShardMissingException") >= 0;
@@ -326,7 +326,7 @@ public class IndexRequestQueue implements InitializingBean {
             } else {
                 fireComplete();
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("Batch complete: " + bulkResponse.items().length + " actions.");
+                    LOG.debug("Batch complete: " + bulkResponse.getItems().length + " actions.");
                 }
             }
         }
