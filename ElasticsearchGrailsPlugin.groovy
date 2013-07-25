@@ -53,8 +53,10 @@ class ElasticsearchGrailsPlugin {
             "grails-app/views/elasticSearch/index.gsp",
             "grails-app/domain/test/**",
             "grails-app/utils/test/**",
+            "grails-app/i18n/**",
             "test/**",
-            "src/docs/**"
+            "src/docs/**",
+            "web-app/**"
     ]
 
 
