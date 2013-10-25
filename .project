@@ -20,7 +20,7 @@
 		<link>
 			<name>.link_to_grails_plugins</name>
 			<type>2</type>
-			<locationURI>GRAILS_ROOT/2.1.0/projects/elasticsearch/plugins</locationURI>
+			<locationURI>GRAILS_ROOT/2.2.2/projects/elasticsearch/plugins</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

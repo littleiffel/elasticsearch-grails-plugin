@@ -147,6 +147,12 @@ public class ElasticSearchMappingFactory {
             if (propType.equals("string") && scpm.isAnalyzed()) {
                 propOptions.put("term_vector", "with_positions_offsets");
             }
+            
+            Object analyzer = scpm.getAnalyzer();
+            if (analyzer != null) {
+                propOptions.put("analyzer", analyzer.toString());
+            }
+            
             elasticTypeMappingProperties.put(scpm.getPropertyName(), propOptions);
         }
 

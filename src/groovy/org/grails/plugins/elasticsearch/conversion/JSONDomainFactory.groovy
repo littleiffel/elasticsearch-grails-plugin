@@ -19,6 +19,7 @@ package org.grails.plugins.elasticsearch.conversion
 import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
 import org.elasticsearch.common.xcontent.XContentBuilder
 import static org.elasticsearch.common.xcontent.XContentFactory.*
+import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.grails.plugins.elasticsearch.conversion.marshall.DeepDomainClassMarshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.DefaultMarshallingContext
@@ -35,7 +36,6 @@ import java.util.Set;
 import org.grails.plugins.elasticsearch.conversion.marshall.PropertyEditorMarshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.Marshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.SearchableReferenceMarshaller
-import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
 import org.apache.commons.lang.ClassUtils
 import org.apache.commons.logging.LogFactory
 
@@ -43,7 +43,7 @@ import org.apache.commons.logging.LogFactory
 /**
  * Marshall objects as JSON.
  */
-class JSONDomainFactory {
+public class JSONDomainFactory {
 	
 	private static final Set<String> SUPPORTED_FORMAT = new HashSet<String>(Arrays.asList(
 		"string", "integer", "long", "float", "double", "boolean", "null", "date"));
@@ -59,7 +59,9 @@ class JSONDomainFactory {
             (Map): MapMarshaller,
             (Collection): CollectionMarshaller
     ]
-
+    
+    def public static SPECIAL_MARSHALLERS = [:]
+    
     /**
      * Create and use the correct marshaller for a peculiar class
      * @param object The instance to marshall
@@ -138,7 +140,7 @@ class JSONDomainFactory {
 	
 
     private GrailsDomainClass getDomainClass(instance) {
-        grailsApplication.domainClasses.find {it.clazz == GrailsHibernateUtil.unwrapIfProxy(instance).class}
+        grailsApplication.domainClasses.find {it.clazz == instance.class}
     }
 
     /**
@@ -148,6 +150,13 @@ class JSONDomainFactory {
      * @return
      */
     public XContentBuilder buildJSON(instance) {
+        def objectClass = instance.class
+        
+        if (SPECIAL_MARSHALLERS[objectClass]) {
+            return SPECIAL_MARSHALLERS[objectClass](jsonBuilder(), instance)
+        }
+        
+        instance = GrailsHibernateUtil.unwrapIfProxy(instance)
         def domainClass = getDomainClass(instance)
         def json = jsonBuilder().startObject()
         // TODO : add maxDepth in custom mapping (only for "seachable components")

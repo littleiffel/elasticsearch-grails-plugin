@@ -31,7 +31,7 @@ import org.grails.plugins.elasticsearch.ElasticSearchContextHolder;
 public class SearchableClassPropertyMapping {
 
     public static final Set<String> SEARCHABLE_MAPPING_OPTIONS = new HashSet<String>(Arrays.asList("boost", "index", "analyzer"));
-    public static final Set<String> SEARCHABLE_SPECIAL_MAPPING_OPTIONS = new HashSet<String>(Arrays.asList("component","converter","reference","excludeFromAll","maxDepth","parentKey", "geoPoint"));
+    public static final Set<String> SEARCHABLE_SPECIAL_MAPPING_OPTIONS = new HashSet<String>(Arrays.asList("component","converter","reference","excludeFromAll","maxDepth","parentKey", "geoPoint", "analyzer"));
 
     /** Grails attributes of this property */
     GrailsDomainClassProperty grailsProperty;
@@ -82,6 +82,10 @@ public class SearchableClassPropertyMapping {
     
     public boolean isGeoPoint() {
       return specialAttributes.get("geoPoint") != null;
+    }
+    
+    public Object getAnalyzer() {
+      return specialAttributes.get("analyzer");
     }
     
     /**

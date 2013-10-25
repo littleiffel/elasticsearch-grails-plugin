@@ -2,8 +2,8 @@ package org.grails.plugins.elasticsearch.conversion.marshall
 
 import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
-import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
 import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
+import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
 import org.springframework.beans.BeansException
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
@@ -15,6 +15,7 @@ class DeepDomainClassMarshaller extends DefaultMarshaller {
   private ApplicationContext ctx
   
   protected doMarshall(instance) {
+    instance = GrailsHibernateUtil.unwrapIfProxy(instance)
     def domainClass = getDomainClass(instance)
     // don't use instance class directly, instead unwrap from javaassist
     def marshallResult = [id: instance.id, 'class': domainClass.clazz.name]
@@ -72,7 +73,7 @@ class DeepDomainClassMarshaller extends DefaultMarshaller {
   }
 
   private GrailsDomainClass getDomainClass(instance) {
-	def instanceClass = GrailsHibernateUtil.unwrapIfProxy(instance).class
+	def instanceClass = instance.class
 	elasticSearchContextHolder.grailsApplication.domainClasses.find {it.clazz == instanceClass}
   }
 
