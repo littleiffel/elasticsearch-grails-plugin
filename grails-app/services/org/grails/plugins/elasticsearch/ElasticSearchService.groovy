@@ -19,6 +19,8 @@ import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.codehaus.groovy.grails.plugins.support.aware.GrailsApplicationAware
 import org.elasticsearch.client.Client
 import org.elasticsearch.action.search.SearchType
+import org.elasticsearch.groovy.common.xcontent.GXContentBuilder
+
 import static org.elasticsearch.client.Requests.searchRequest
 import static org.elasticsearch.search.builder.SearchSourceBuilder.searchSource
 import static org.elasticsearch.index.query.QueryBuilders.queryString
@@ -27,7 +29,6 @@ import org.elasticsearch.action.search.SearchRequest
 import org.elasticsearch.search.builder.SearchSourceBuilder
 import org.elasticsearch.search.highlight.HighlightBuilder
 import org.elasticsearch.search.SearchHit
-import org.grails.plugins.elasticsearch.util.GXContentBuilder
 import org.elasticsearch.search.sort.SortOrder
 import org.elasticsearch.action.count.CountRequest
 import org.elasticsearch.action.ActionRequest
@@ -424,9 +425,9 @@ public class ElasticSearchService implements GrailsApplicationAware {
     private doSearch(SearchRequest request, Map params) {
         elasticSearchHelper.withElasticSearch { Client client ->
             def response = client.search(request).actionGet()
-            def searchHits = response.getHits()
+            def searchHits = response.hits
             def result = [:]
-            result.total = searchHits.totalHits()
+            result.total = searchHits.totalHits
 
             LOG.debug "Search returned ${result.total ?: 0} result(s)."
 
@@ -450,7 +451,10 @@ public class ElasticSearchService implements GrailsApplicationAware {
             if (params.score) {
                 def scoreResults = [:]
                 for (SearchHit hit: searchHits) {
-                    scoreResults[(hit.id)] = hit.score
+                    if ( scoreResults[ hit.index + "." + hit.type ] == null ) {
+                        scoreResults[ hit.index + "." + hit.type ] = [:]
+                    }
+                    scoreResults[ hit.index + "." + hit.type ][ hit.id ] = hit.score
                 }
                 result.scores = scoreResults
             }
