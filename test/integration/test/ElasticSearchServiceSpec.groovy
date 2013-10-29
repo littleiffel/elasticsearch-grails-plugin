@@ -17,16 +17,20 @@ class ElasticSearchServiceSpec extends IntegrationSpec {
     def setup() {
         // Make sure the indices are cleaned
         println "cleaning indices"
-        elasticSearchAdminService.deleteIndex()
+        //elasticSearchAdminService.deleteIndex()
         elasticSearchAdminService.refresh()
     }
 
     def "Index a domain object"() {
-        given:
+        given:      
+        def loc = new GeoLocation(lat:"1".toDouble(), lon:"2".toDouble())
+        loc.save()
         def product = new Product(name: "myTestProduct")
+        product.geo = loc
         product.save()
 
         when:
+        elasticSearchService.index(loc)
         elasticSearchService.index(product)
         elasticSearchAdminService.refresh()  // Ensure the latest operations have been exposed on the ES instance
 
@@ -36,10 +40,13 @@ class ElasticSearchServiceSpec extends IntegrationSpec {
 
     def "Unindex method delete index from ES"() {
         given:
+        def loc = new GeoLocation(lat:"1".toDouble(), lon:"2".toDouble())
+        loc.save()
         def product = new Product(name: "myTestProduct")
-        product.save()
+        product.geo = loc
 
         when:
+        elasticSearchService.index(loc)
         elasticSearchService.index(product)
         elasticSearchAdminService.refresh()  // Ensure the latest operations have been exposed on the ES instance
 
@@ -47,6 +54,7 @@ class ElasticSearchServiceSpec extends IntegrationSpec {
         elasticSearchService.search("myTestProduct", [indices: Product, types: Product]).total == 1
 
         then:
+        elasticSearchService.index(loc)
         elasticSearchService.unindex(product)
         elasticSearchAdminService.refresh()
 
@@ -56,10 +64,13 @@ class ElasticSearchServiceSpec extends IntegrationSpec {
 
     def "Indexing multiple time the same object update the corresponding ES entry"() {
         given:
+        def loc = new GeoLocation(lat:"1".toDouble(), lon:"2".toDouble())
+        loc.save()
         def product = new Product(name: "myTestProduct")
-        product.save()
+        product.geo = loc
 
         when:
+        elasticSearchService.index(loc)
         elasticSearchService.index(product)
         elasticSearchAdminService.refresh()
 
@@ -68,6 +79,7 @@ class ElasticSearchServiceSpec extends IntegrationSpec {
 
         when:
         product.name = "newProductName"
+        elasticSearchService.index(loc)
         elasticSearchService.index(product)
         elasticSearchAdminService.refresh()
 
