@@ -18,6 +18,7 @@ class DeepDomainClassMarshaller extends DefaultMarshaller {
     instance = GrailsHibernateUtil.unwrapIfProxy(instance)
     def domainClass = getDomainClass(instance)
     // don't use instance class directly, instead unwrap from javaassist
+    println('active domain class:' + domainClass)
     def marshallResult = [id: instance.id, 'class': domainClass.clazz.name]
     def scm = elasticSearchContextHolder.getMappingContext(domainClass)
     if (!scm) {
@@ -73,6 +74,8 @@ class DeepDomainClassMarshaller extends DefaultMarshaller {
   }
 
   private GrailsDomainClass getDomainClass(instance) {
+    println('instanceClass: ' + instance.class)
+    println('available domainClasses:' + elasticSearchContextHolder.grailsApplication.domainClasses)
 	  def instanceClass = instance.class
 	  elasticSearchContextHolder.grailsApplication.domainClasses.find {it.clazz == instanceClass}
   }
