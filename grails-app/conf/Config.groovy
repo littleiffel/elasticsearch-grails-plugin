@@ -54,9 +54,9 @@ environments {
 
     test {
         elasticSearch {
-            client.mode = 'transport'
-            //client.transport.sniff = true
-            //index.store.type = 'memory'
+            client.mode = 'local'
+            client.transport.sniff = true
+            index.store.type = 'memory'
         }
     }
 

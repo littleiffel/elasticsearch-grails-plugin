@@ -70,7 +70,7 @@ public class ElasticSearchMappingFactory {
             	LOG.debug("propType not supported: " + propType + " name: " + property.getName());
 
             	if (scpm.isGeoPoint()) {
-            	  propType = "geo_point";
+            	    propType = "geo_point";
             	}
             	else if (property.isBasicCollectionType()) {
                     // Handle embedded persistent collections, ie List<String> listOfThings
@@ -105,7 +105,11 @@ public class ElasticSearchMappingFactory {
                 } else if (scpm.isComponent()) {
                     // Proceed with nested mapping.
                     // todo limit depth to avoid endless recursion?
-                    propType = "object";
+                    if(scpm.getGrailsProperty().isManyToMany() || scpm.getGrailsProperty().isOneToMany()){
+                        propType = "nested";
+                    } else {
+                        propType = "object";    
+                    }
                     //noinspection unchecked
                     propOptions.putAll((Map<String, Object>)
                             (getElasticMapping(scpm.getComponentPropertyMapping()).values().iterator().next()));

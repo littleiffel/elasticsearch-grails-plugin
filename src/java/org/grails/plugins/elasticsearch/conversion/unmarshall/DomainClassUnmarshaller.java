@@ -68,7 +68,7 @@ public class DomainClassUnmarshaller {
         List<GroovyObject> results = new ArrayList<GroovyObject>();
         for(SearchHit hit : hits) {
             String domainClassName = hit.index().equals(hit.type()) ? WordUtils.capitalize(hit.index()) : (hit.index() + '.' + WordUtils.capitalize(hit.type()));
-            SearchableClassMapping scm = elasticSearchContextHolder.getMappingContext(domainClassName);
+            SearchableClassMapping scm = elasticSearchContextHolder.getMappingContextForSyntheticType(domainClassName);
             if (scm == null) {
                 LOG.warn("Unknown SearchHit: " + hit.id() + "#" + hit.type() + ", domain class name: " + domainClassName);
                 continue;

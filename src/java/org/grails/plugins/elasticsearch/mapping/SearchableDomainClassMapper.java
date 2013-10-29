@@ -20,6 +20,9 @@ import groovy.lang.Closure;
 import groovy.lang.GroovyObjectSupport;
 import groovy.util.ConfigObject;
 import org.codehaus.groovy.grails.commons.*;
+import org.springframework.util.ObjectUtils;
+import org.springframework.util.ReflectionUtils;
+import java.lang.reflect.Field;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -28,7 +31,7 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
     /**
      * Options applied to searchable class itself
      */
-    public static final Set<String> CLASS_MAPPING_OPTIONS = new HashSet<String>(Arrays.asList("all", "root", "only", "except"));
+    public static final Set<String> CLASS_MAPPING_OPTIONS = new HashSet<String>(Arrays.asList("all", "root", "only", "except", "where", "indexName"));
     /**
      * Searchable property name
      */
@@ -41,6 +44,8 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
      */
    // private Boolean all = true;
     private Boolean root = true;
+    private Closure where = null;
+    private String indexName = null;
 
     private Set<String> mappableProperties = new HashSet<String>();
     private Map<String, SearchableClassPropertyMapping> customMappedProperties = new HashMap<String, SearchableClassPropertyMapping>();
@@ -83,6 +88,18 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
 
     public void root(Boolean rootFlag) {
         this.root = rootFlag;
+    }
+
+    public void indexName(String _indexName){
+        this.indexName = _indexName;
+    }
+     
+    public void setWhere(Closure _where){
+        this.where = _where;
+    }
+       
+    public void setIndexName(String _indexName){
+        indexName = _indexName;
     }
     
     /**
@@ -176,6 +193,8 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
 
         SearchableClassMapping scm = new SearchableClassMapping(grailsDomainClass, customMappedProperties.values());
         scm.setRoot(root);
+        scm.setWhere(where);
+        scm.setIndexName(indexName);
         return scm;
     }
 
