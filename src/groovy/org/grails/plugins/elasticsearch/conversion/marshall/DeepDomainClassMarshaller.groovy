@@ -73,8 +73,8 @@ class DeepDomainClassMarshaller extends DefaultMarshaller {
   }
 
   private GrailsDomainClass getDomainClass(instance) {
-	def instanceClass = instance.class
-	elasticSearchContextHolder.grailsApplication.domainClasses.find {it.clazz == instanceClass}
+	  def instanceClass = instance.class
+	  elasticSearchContextHolder.grailsApplication.domainClasses.find {it.clazz == instanceClass}
   }
 
   @Override
