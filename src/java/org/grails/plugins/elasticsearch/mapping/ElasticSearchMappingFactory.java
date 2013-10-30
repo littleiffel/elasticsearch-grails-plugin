@@ -35,12 +35,12 @@ public class ElasticSearchMappingFactory {
 
     private static final Set<String> SUPPORTED_FORMAT = new HashSet<String>(Arrays.asList(
             "string", "integer", "long", "float", "double", "boolean", "null", "date"));
-    
+
     private static final Logger LOG = Logger.getLogger(ElasticSearchMappingFactory.class);
 
 
     private static Class<?> JODA_TIME_BASE;
-    
+
     static {
         try {
             JODA_TIME_BASE = Class.forName("org.joda.time.ReadableInstant");
@@ -51,7 +51,7 @@ public class ElasticSearchMappingFactory {
 	public static Map<String, Object> getElasticMapping(SearchableClassMapping scm) {
         Map<String, Object> elasticTypeMappingProperties = new LinkedHashMap<String, Object>();
         String parentType = null;
-        
+
         if (!scm.isAll()) {
             // "_all" : {"enabled" : true}
             elasticTypeMappingProperties.put("_all",
@@ -98,7 +98,7 @@ public class ElasticSearchMappingFactory {
                     // todo should this be string??
                     propType = "object";
                 }
-                
+
 
                 if (scpm.getReference() != null) {
                     propType = "object";      // fixme: think about composite ids.
@@ -108,7 +108,7 @@ public class ElasticSearchMappingFactory {
                     if(scpm.getGrailsProperty().isManyToMany() || scpm.getGrailsProperty().isOneToMany()){
                         propType = "nested";
                     } else {
-                        propType = "object";    
+                        propType = "object";
                     }
                     //noinspection unchecked
                     propOptions.putAll((Map<String, Object>)
@@ -128,13 +128,13 @@ public class ElasticSearchMappingFactory {
                     props.put("class", defaultDescriptor("string", "no", true));
                     props.put("ref", defaultDescriptor("string", "no", true));
                 }
-                
+
                 if (scpm.isParentKey()) {
                   parentType = property.getTypePropertyName();
                   scm.setParent(scpm);
                 }
             }
-            else if (scpm.isGeoPoint()) {
+            if (scpm.isGeoPoint()) {
               propType = "geo_point";
             }
             propOptions.put("type", propType);
@@ -151,22 +151,22 @@ public class ElasticSearchMappingFactory {
             if (propType.equals("string") && scpm.isAnalyzed()) {
                 propOptions.put("term_vector", "with_positions_offsets");
             }
-            
+
             Object analyzer = scpm.getAnalyzer();
             if (analyzer != null) {
                 propOptions.put("analyzer", analyzer.toString());
             }
-            
+
             elasticTypeMappingProperties.put(scpm.getPropertyName(), propOptions);
         }
 
         Map<String, Object> mapping = new LinkedHashMap<String, Object>();
         Map<String, Object> objectMapping = new LinkedHashMap<String, Object>();
-        
+
         if (parentType != null) {
           objectMapping.put("_parent", Collections.singletonMap("type", parentType));
         }
-        
+
         objectMapping.put("properties", elasticTypeMappingProperties);
         mapping.put(scm.getElasticTypeName(), objectMapping);
 
@@ -176,7 +176,7 @@ public class ElasticSearchMappingFactory {
     private static boolean isDateType(Class<?> type) {
         return (JODA_TIME_BASE != null && JODA_TIME_BASE.isAssignableFrom(type)) || java.util.Date.class.isAssignableFrom(type);
     }
-    
+
     private static Map<String, Object> defaultDescriptor(String type, String index, boolean excludeFromAll) {
         Map<String, Object> props = new LinkedHashMap<String, Object>();
         props.put("type", type);

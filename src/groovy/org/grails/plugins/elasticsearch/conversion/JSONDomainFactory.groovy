@@ -45,7 +45,7 @@ import org.apache.commons.logging.LogFactory
  * Marshall objects as JSON.
  */
 public class JSONDomainFactory {
-	
+
 	private static final Set<String> SUPPORTED_FORMAT = new HashSet<String>(Arrays.asList(
 		"string", "integer", "long", "float", "double", "boolean", "null", "date"));
 
@@ -60,9 +60,9 @@ public class JSONDomainFactory {
             (Map): MapMarshaller,
             (Collection): CollectionMarshaller
     ]
-    
+
     def public static SPECIAL_MARSHALLERS = [:]
-    
+
     /**
      * Create and use the correct marshaller for a peculiar class
      * @param object The instance to marshall
@@ -104,6 +104,10 @@ public class JSONDomainFactory {
                             marshaller = new PropertyEditorMarshaller(propertyEditorClass:converter)
                         }
                     }
+                } else if (propertyMapping?.isGeoPoint()) {
+                    // Dirty Hack to avoid Gepoint using wrong Marshaller and Unmarshalling is not supported
+                    // TODO: CLEANUP this thing and put some order into taht
+                    marshaller = new GeoPointMarshaller()
                 } else if (propertyMapping?.reference) {
                     def refClass = propertyMapping.getBestGuessReferenceType()
                     marshaller = new SearchableReferenceMarshaller(refClass:refClass)
@@ -137,14 +141,14 @@ public class JSONDomainFactory {
                 }
             }
         }
-
+        log.warn "Using ${marshaller.getClass()} for marshalling ${objectClass}"
         marshaller.marshallingContext = marshallingContext
         marshaller.elasticSearchContextHolder = elasticSearchContextHolder
         marshaller.maxDepth = maxDepth
         log.debug("mashalling ${object}")
         marshaller.marshall(object)
     }
-	
+
 
     private GrailsDomainClass getDomainClass(instance) {
         grailsApplication.domainClasses.find {it.clazz == instance.class}
@@ -158,11 +162,11 @@ public class JSONDomainFactory {
      */
     public XContentBuilder buildJSON(instance) {
         def objectClass = instance.class
-        
+
         if (SPECIAL_MARSHALLERS[objectClass]) {
             return SPECIAL_MARSHALLERS[objectClass](jsonBuilder(), instance)
         }
-        
+
         instance = GrailsHibernateUtil.unwrapIfProxy(instance)
         def domainClass = getDomainClass(instance)
         def json = jsonBuilder().startObject()
@@ -174,21 +178,21 @@ public class JSONDomainFactory {
         scm.propertiesMapping.each { scpm ->
             marshallingContext.lastParentPropertyName = scpm.propertyName
             // todo figure out null value
-            
+
             def nullObject = null
 			def classType = scpm.getPropertyType()
 			String shortTypeName = ClassUtils.getShortClassName(classType);
 			def type = shortTypeName.substring(0,1).toLowerCase(Locale.ENGLISH) + shortTypeName.substring(1);
             log.debug("type: ${type}")
-            
+
 			if(type.equals("string")) nullObject = ""
-			else if( type.equals("integer") || type.equals("long") || type.equals("float") || type.equals("double") ) 
+			else if( type.equals("integer") || type.equals("long") || type.equals("float") || type.equals("double") )
 				nullObject = 0
-			else if(type.equals("set")|| type.equals("list") || type.equals("collection")) 
+			else if(type.equals("set")|| type.equals("list") || type.equals("collection"))
                 nullObject = []
-			else if(type.equals("map")) 
+			else if(type.equals("map"))
                 nullObject = [:]
-            
+
             def res = delegateMarshalling(instance."${scpm.propertyName}", marshallingContext,nullObject)
             json.field(scpm.propertyName, res)
         }
@@ -197,7 +201,7 @@ public class JSONDomainFactory {
         json.close()
         json
     }
-	
+
     public Object getInstanceProperty(instance, scpm) {
       instance."${scpm.propertyName}"
     }

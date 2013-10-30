@@ -192,8 +192,10 @@ public class DomainClassUnmarshaller {
                 return unmarshallReference(refDomainClass, data, unmarshallingContext);
             }
 
+
             if (data.containsKey("class")) {
                 // Embedded instance.
+
                 if (!scpm.isComponent()) {
                     // maybe ignore?
                     throw new IllegalStateException("Property " + domainClass.getName() + "." + propertyName +
@@ -278,12 +280,12 @@ public class DomainClassUnmarshaller {
 		Object id = typeConverter.convertIfNecessary(providedId, identifier.getType());
         GroovyObject instance = (GroovyObject) domainClass.newInstance();
         instance.setProperty(identifier.getName(), id);
-        
+
         if(data == null) {
             LOG.debug("returning null");
         	return null;
         }
-        
+
         for(Map.Entry<String, Object> entry : data.entrySet()) {
             if (!entry.getKey().equals("class") && !entry.getKey().equals("id")) {
                 unmarshallingContext.getUnmarshallingStack().push(entry.getKey());
