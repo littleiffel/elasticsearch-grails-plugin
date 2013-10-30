@@ -17,6 +17,12 @@ class ElasticSearchContextHolder {
      */
     Map<String, SearchableClassMapping> mapping = [:]
 
+
+    /**
+    * Map syntetic type (indexName.type) to full class name
+    */
+    Map<String, String> syntheticToFullTypeMapping = [:]
+
     /**
      * Adds a mapping context to the current mapping holder
      *
@@ -24,6 +30,7 @@ class ElasticSearchContextHolder {
      */
     public void addMappingContext(SearchableClassMapping scm) {
         mapping[scm.domainClass.fullName] = scm
+        syntheticToFullTypeMapping[scm.getIndexName() + "." + scm.domainClass.shortName] = scm.domainClass.fullName
     }
 
     /**
@@ -33,6 +40,15 @@ class ElasticSearchContextHolder {
      */
     SearchableClassMapping getMappingContext(String type) {
         mapping[type]
+    }
+
+    /**
+    * Returns the mapping context for a synthetic type
+    * @param type
+    * @return
+    */
+    SearchableClassMapping getMappingContextForSyntheticType(String type) {
+        mapping[syntheticToFullTypeMapping[type]]
     }
 
     /**
